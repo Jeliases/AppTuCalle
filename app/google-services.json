@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "983846518874",
+    "project_id": "apptucalle",
+    "storage_bucket": "apptucalle.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983846518874:android:fc1a05cb9176483b699863",
+        "android_client_info": {
+          "package_name": "com.tech.tucalle"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "983846518874-9j7p7nf6175vm1ru0cqv2u5endk6dtva.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tech.tucalle",
+            "certificate_hash": "20b053b48cb56136a0f81fc317761d9d2234ab03"
+          }
+        },
+        {
+          "client_id": "983846518874-6ll4jejtd2jmqpuk84llubast9lfm4kn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYQW5gErMiXOMAE9YGaRbSvGXcKkt3D5g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "983846518874-6ll4jejtd2jmqpuk84llubast9lfm4kn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
