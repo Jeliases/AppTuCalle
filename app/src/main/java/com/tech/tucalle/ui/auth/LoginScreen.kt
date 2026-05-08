@@ -20,15 +20,22 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// Estas son las importaciones correctas para Firebase Slark
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
 @Composable
-fun LoginScreen(onNavigateToRegister: () -> Unit, onBack: () -> Unit) {
+fun LoginScreen(
+    onNavigateToRegister: () -> Unit,
+    onBack: () -> Unit,
+    onLoginSuccess: (String) -> Unit, // <--- AÑADIDO: Para devolver el rol al NavGraph
+    authViewModel: AuthViewModel = viewModel() // <--- AÑADIDO: Para consultar Firestore
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -55,7 +62,6 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onBack: () -> Unit) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Estas son las que daban error porque faltaban abajo
         LoginInput(label = "Email*", value = email, onValueChange = { email = it })
         LoginInput(label = "Contraseña*", value = password, onValueChange = { password = it }, isPassword = true)
 
@@ -80,24 +86,37 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onBack: () -> Unit) {
         Button(
             onClick = {
                 if (email.isNotEmpty() && password.isNotEmpty()) {
-                    Firebase.auth.signInWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                println("Logueado con éxito en Slark")
-                            } else {
-                                statusMessage = "Error al iniciar sesión"
-                            }
+                    isLoading = true
+                    // Usamos el viewModel para validar las credenciales y obtener el rol de Firestore
+                    authViewModel.loginWithRole(
+                        email = email,
+                        pass = password,
+                        onSuccess = { rol ->
+                            isLoading = false
+                            onLoginSuccess(rol) // Te manda a la pantalla correspondiente
+                        },
+                        onFailure = { error ->
+                            isLoading = false
+                            statusMessage = error
                         }
+                    )
+                } else {
+                    statusMessage = "Por favor, completa todos los campos"
                 }
             },
             modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-            shape = RoundedCornerShape(30.dp)
+            shape = RoundedCornerShape(30.dp),
+            enabled = !isLoading
         ) {
-            Text(text = "Ingresar", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text(text = "Ingresar", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
-        LoginDivider() // Esta también daba error
+        LoginDivider()
 
         OutlinedButton(
             onClick = onNavigateToRegister,
@@ -109,8 +128,6 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onBack: () -> Unit) {
         }
     }
 }
-
-// FUNCIONES AUXILIARES (Tienen que estar aquí para que no salgan errores)
 
 @Composable
 fun LoginInput(
@@ -174,5 +191,5 @@ fun LoginDivider() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
-    LoginScreen(onNavigateToRegister = {}, onBack = {})
+    LoginScreen(onNavigateToRegister = {}, onBack = {}, onLoginSuccess = {})
 }

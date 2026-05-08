@@ -1,6 +1,5 @@
 package com.tech.tucalle.ui.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,30 +11,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// Estas son las importaciones correctas para Firebase Slark
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tech.tucalle.ui.viewmodel.AuthViewModel
 
 @Composable
-fun RegisterScreen(tipo: String, onBack: () -> Unit) {
-    // ESTADOS: Captura de datos del usuario
+fun RegisterScreen(
+    tipo: String, // Recibe "USUARIO" desde el NavGraph
+    onBack: () -> Unit,
+    onRegisterSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
+) {
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var celular by remember { mutableStateOf("") }
-    var statusMessage by remember { mutableStateOf("") }
 
-    // ESTADOS DE CHECKBOX
     var aceptoTerminos by remember { mutableStateOf(false) }
     var aceptoPromociones by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -52,7 +50,6 @@ fun RegisterScreen(tipo: String, onBack: () -> Unit) {
 
         Text(text = "Regístrate", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.Black)
 
-        // Mostrar mensaje de error o éxito si existe
         if (statusMessage.isNotEmpty()) {
             Text(
                 text = statusMessage,
@@ -62,12 +59,12 @@ fun RegisterScreen(tipo: String, onBack: () -> Unit) {
             )
         }
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        LoginInput(label = "Nombres y Apellidos*", value = nombre, onValueChange = { nombre = it })
+        LoginInput(label = "Nombre completo*", value = nombre, onValueChange = { nombre = it })
         LoginInput(label = "Email*", value = email, onValueChange = { email = it })
         LoginInput(label = "Contraseña*", value = password, onValueChange = { password = it }, isPassword = true)
-        LoginInput(label = "Celular*", value = celular, onValueChange = { celular = it })
+        LoginInput(label = "Número de contacto*", value = celular, onValueChange = { celular = it })
 
         Spacer(modifier = Modifier.height(15.dp))
 
@@ -93,37 +90,47 @@ fun RegisterScreen(tipo: String, onBack: () -> Unit) {
 
         Button(
             onClick = {
-                if (email.isNotEmpty() && password.isNotEmpty()) {
-                    // LLAMADA REAL A FIREBASE SLARK
-                    Firebase.auth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                statusMessage = "¡Usuario creado con éxito!"
-                                // Aquí podrías guardar 'nombre' y 'celular' en Firestore después
-                                println("Registrado: $nombre - Promo: $aceptoPromociones")
-                            } else {
-                                // Captura el error real (ej: email mal escrito o clave muy corta)
-                                statusMessage = "Error: ${task.exception?.message}"
-                            }
+                if (email.isNotEmpty() && password.isNotEmpty() && nombre.isNotEmpty()) {
+                    isLoading = true
+                    // Guardamos la estructura del usuario normal
+                    val userData = mapOf(
+                        "nombre" to nombre,
+                        "email" to email,
+                        "celular" to celular,
+                        "rol" to tipo, // Aquí pasará "USUARIO"
+                        "recibirPromociones" to aceptoPromociones
+                    )
+
+                    authViewModel.registerUserWithRole(
+                        email = email,
+                        pass = password,
+                        userData = userData,
+                        onSuccess = {
+                            isLoading = false
+                            statusMessage = "¡Usuario registrado con éxito!"
+                            onRegisterSuccess()
+                        },
+                        onFailure = { error ->
+                            isLoading = false
+                            statusMessage = error
                         }
+                    )
                 } else {
-                    statusMessage = "Por favor, completa todos los campos"
+                    statusMessage = "Por favor, llena los campos requeridos."
                 }
             },
-            enabled = aceptoTerminos,
+            enabled = aceptoTerminos && !isLoading,
             modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
             shape = RoundedCornerShape(30.dp)
         ) {
-            Text("Registrarse", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text("Registrarse", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(30.dp))
     }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun RegisterScreenPreview() {
-    RegisterScreen(tipo = "USUARIO", onBack = {})
 }

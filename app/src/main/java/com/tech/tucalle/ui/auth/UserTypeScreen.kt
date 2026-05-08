@@ -47,7 +47,7 @@ fun UserTypeScreen(
 
         // Botón Soy Tienda / Huarique
         Button(
-            onClick = { onTypeSelected("HUARIQUE") },
+            onClick = { onTypeSelected("TIENDA") },
             modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
             shape = RoundedCornerShape(25.dp)
