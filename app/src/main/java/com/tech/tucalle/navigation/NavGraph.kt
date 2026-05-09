@@ -5,15 +5,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.tech.tucalle.ui.auth.AuthScreen
-import com.tech.tucalle.ui.auth.LoginScreen
-import com.tech.tucalle.ui.auth.RegisterScreen
-import com.tech.tucalle.ui.auth.RegisterStoreScreen // Tu nueva pantalla de Tienda
-import com.tech.tucalle.ui.auth.SplashScreen
-import com.tech.tucalle.ui.auth.UserTypeScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.tech.tucalle.ui.auth.*
+// IMPORTANTE: Aquí estamos importando tu nuevo HomeScreen real
+import com.tech.tucalle.ui.usuario.HomeScreen
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
-
-// Pantallas de marcador de posición temporales (puedes reemplazarlas por tus archivos reales luego)
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,12 +19,10 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun NavGraph(navController: NavHostController) {
-    // Instanciamos el AuthViewModel para compartirlo en la navegación si es necesario
     val authViewModel: AuthViewModel = viewModel()
 
     NavHost(navController = navController, startDestination = "splash") {
 
-        // 1. Carga inicial (Splash)
         composable("splash") {
             SplashScreen(onNavigateToLogin = {
                 navController.navigate("auth") {
@@ -36,12 +31,10 @@ fun NavGraph(navController: NavHostController) {
             })
         }
 
-        // 2. Pantalla de bienvenida (AuthScreen)
         composable("auth") {
             AuthScreen(
                 onNavigateToLogin = { navController.navigate("login") },
                 onNavigateToGoogle = {
-                    // Lógica de Google: se registra automáticamente como "USUARIO"
                     authViewModel.checkAndCreateGoogleUser { rol ->
                         if (rol == "USUARIO") {
                             navController.navigate("home_user") {
@@ -53,40 +46,59 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 3. Iniciar Sesión (Decide a dónde ir según el Rol que traiga de Firestore)
         composable("login") {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate("user_type") },
                 onBack = { navController.popBackStack() },
                 onLoginSuccess = { rol ->
-                    // ¡Aquí ocurre la magia! Dependiendo del rol, renderiza una pantalla u otra
                     val destino = if (rol == "TIENDA") "dashboard_store" else "home_user"
                     navController.navigate(destino) {
-                        popUpTo("auth") { inclusive = true } // Limpia el historial para que no retroceda al login
+                        popUpTo("auth") { inclusive = true }
+                    }
+                },
+                onNavigateToForgot = {
+                    navController.navigate("forgot_password")
+                }
+            )
+        }
+
+        composable("forgot_password") {
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToVerify = { email ->
+                    navController.navigate("verify_code/$email")
+                }
+            )
+        }
+
+        composable(
+            route = "verify_code/{email}",
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            VerifyCodeScreen(
+                email = email,
+                onBack = {
+                    navController.navigate("login") {
+                        popUpTo("login") { inclusive = true }
                     }
                 }
             )
         }
 
-        // 4. Selección de Rol (Soy Usuario / Soy Tienda)
         composable("user_type") {
             UserTypeScreen(
                 onTypeSelected = { tipo ->
-                    // Si eligen "USUARIO", van al registro de usuario normal
-                    // Si eligen "TIENDA", van al registro de tienda con más campos
                     if (tipo == "TIENDA") {
                         navController.navigate("register_store")
                     } else {
                         navController.navigate("register/USUARIO")
                     }
                 },
-                onBack = {
-                    navController.popBackStack()
-                }
+                onBack = { navController.popBackStack() }
             )
         }
 
-        // 5. Registro Final para Clientes (Rol: USUARIO)
         composable("register/{tipo}") { backStackEntry ->
             val tipo = backStackEntry.arguments?.getString("tipo") ?: "USUARIO"
             RegisterScreen(
@@ -100,7 +112,6 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 6. Registro Final para Tiendas (Rol: TIENDA)
         composable("register_store") {
             RegisterStoreScreen(
                 onBack = { navController.popBackStack() },
@@ -112,37 +123,12 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 7. Pantalla del Cliente (Home del Usuario)
-        composable("home_user") {
-            HomeScreen(onLogout = {
-                navController.navigate("auth") {
-                    popUpTo(0) // Limpia todo el historial de navegación al salir
-                }
-            })
-        }
+        // Aquí ya usa el HomeScreen real que importamos arriba
+        composable("home_user") { HomeScreen() }
 
-        // 8. Pantalla del Administrador (Dashboard de la Tienda)
-        composable("dashboard_store") {
-            StoreDashboardScreen(onLogout = {
-                navController.navigate("auth") {
-                    popUpTo(0)
-                }
-            })
-        }
+        composable("dashboard_store") { StoreDashboardScreen() }
     }
 }
 
-// Componibles de prueba rápidos para que compile sin errores antes de que crees las pantallas reales:
-@Composable
-fun HomeScreen(onLogout: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("¡Bienvenido Usuario! Aquí verás la lista de tiendas de tu calle.")
-    }
-}
-
-@Composable
-fun StoreDashboardScreen(onLogout: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("¡Bienvenido Socio Tienda! Aquí gestionarás tus productos y horarios.")
-    }
-}
+// Ya borramos el HomeScreen de mentira, solo dejamos el de la Tienda por ahora
+@Composable fun StoreDashboardScreen() { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Dashboard Tienda") } }

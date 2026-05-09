@@ -2,6 +2,7 @@ package com.tech.tucalle.ui.auth
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,8 +30,9 @@ import com.google.firebase.auth.auth
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onBack: () -> Unit,
-    onLoginSuccess: (String) -> Unit, // <--- AÑADIDO: Para devolver el rol al NavGraph
-    authViewModel: AuthViewModel = viewModel() // <--- AÑADIDO: Para consultar Firestore
+    onLoginSuccess: (String) -> Unit,
+    onNavigateToForgot: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -78,9 +80,31 @@ fun LoginScreen(
                 }
             }
         ) {
-            Text(text = "Olvidé mi contraseña", fontSize = 12.sp, textDecoration = TextDecoration.Underline, color = Color.Black)
-        }
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd) // Alineación correcta
+                        .clickable { onNavigateToForgot() }, // Usamos el callback, no el navController
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    textDecoration = TextDecoration.Underline
+                )
+            }
 
+        }
+        Button(
+            onClick = {
+                statusMessage = "Inyectando datos..." // Mensaje de carga
+                authViewModel.inyectarDatosDePrueba { resultado ->
+                    statusMessage = resultado // Muestra el éxito o el error
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(55.dp).padding(top = 10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000000))
+        ) {
+            Text("Inyectar Datos (Borrar luego)", fontSize = 18.sp, color = Color.White)
+        }
         Spacer(modifier = Modifier.height(40.dp))
 
         Button(
@@ -103,6 +127,8 @@ fun LoginScreen(
                 } else {
                     statusMessage = "Por favor, completa todos los campos"
                 }
+
+
             },
             modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
@@ -188,8 +214,14 @@ fun LoginDivider() {
     }
 }
 
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
-    LoginScreen(onNavigateToRegister = {}, onBack = {}, onLoginSuccess = {})
+    LoginScreen(
+        onNavigateToRegister = {},
+        onBack = {},
+        onLoginSuccess = {},
+        onNavigateToForgot = {}
+    )
 }

@@ -2,7 +2,6 @@ package com.tech.tucalle.ui.auth
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +33,7 @@ import java.io.IOException
 import java.util.Locale
 
 @SuppressLint("MissingPermission")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapSelectorScreen(
     onLocationSelected: (direccion: String, latitud: Double, longitud: Double) -> Unit,
@@ -41,42 +42,31 @@ fun MapSelectorScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // Ubicación por defecto centrado en Lima, Perú si no se activa el GPS
-    val defaultLocation = LatLng(-12.046374, -77.042793)
+    val defaultLocation = LatLng(-12.046374, -77.042793) // Lima, Perú por defecto
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultLocation, 15f)
     }
 
     var textAddress by remember { mutableStateOf("Buscando ubicación...") }
+    var searchQuery by remember { mutableStateOf("") }
     var currentLatLng by remember { mutableStateOf(defaultLocation) }
     var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
     }
 
-    // Gestor de permisos para pedir acceso al GPS
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         hasLocationPermission = isGranted
         if (isGranted) {
-            // Si concede el permiso, obtenemos de inmediato la ubicación actual para centrar el mapa
             val service = LocationServices.getFusedLocationProviderClient(context)
             service.lastLocation.addOnSuccessListener { location ->
                 location?.let {
                     val latLng = LatLng(it.latitude, it.longitude)
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, 17f)
-                    currentLatLng = latLng
                 }
             }
         }
     }
 
-    // Pedir permiso al abrir el mapa si aún no está otorgado
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -86,13 +76,32 @@ fun MapSelectorScreen(
                 location?.let {
                     val latLng = LatLng(it.latitude, it.longitude)
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, 17f)
-                    currentLatLng = latLng
                 }
             }
         }
     }
 
-    // Traducir coordenadas (Latitud, Longitud) a Dirección en texto usando el Geocoder de Android
+    // Función para buscar por texto (La barra de búsqueda)
+    fun searchLocationFromText(query: String) {
+        if (query.isEmpty()) return
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocationName(query, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    val address = addresses[0]
+                    val latLng = LatLng(address.latitude, address.longitude)
+                    withContext(Dispatchers.Main) {
+                        cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, 17f)
+                    }
+                }
+            } catch (e: Exception) {
+                // Manejar error silenciosamente
+            }
+        }
+    }
+
     fun updateAddressFromCoordinates(latLng: LatLng) {
         coroutineScope.launch(Dispatchers.IO) {
             try {
@@ -101,23 +110,17 @@ fun MapSelectorScreen(
                 val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
                 withContext(Dispatchers.Main) {
                     if (!addresses.isNullOrEmpty()) {
-                        val address = addresses[0]
-                        // Formateamos la dirección de manera legible (Calle + Altura + Distrito)
-                        val fullAddress = address.getAddressLine(0) ?: "Dirección sin nombre"
-                        textAddress = fullAddress
+                        textAddress = addresses[0].getAddressLine(0) ?: "Dirección sin nombre"
                     } else {
-                        textAddress = "No se encontró una dirección en este punto"
+                        textAddress = "No se encontró una dirección"
                     }
                 }
             } catch (e: IOException) {
-                withContext(Dispatchers.Main) {
-                    textAddress = "Error al obtener la dirección por red"
-                }
+                withContext(Dispatchers.Main) { textAddress = "Error al conectar con GPS" }
             }
         }
     }
 
-    // Detectar cuando la cámara del mapa se detiene para actualizar la dirección
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             val centerLatLng = cameraPositionState.position.target
@@ -127,106 +130,67 @@ fun MapSelectorScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Renderizado del mapa de Google
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                isMyLocationEnabled = hasLocationPermission // Muestra el puntito azul de mi ubicación si hay permisos
-            ),
-            uiSettings = MapUiSettings(
-                myLocationButtonEnabled = true, // Botón nativo para re-centrar el GPS
-                zoomControlsEnabled = false     // Ocultamos los botones de +/- feos para un diseño más limpio
-            )
+            properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
+            uiSettings = MapUiSettings(myLocationButtonEnabled = true, zoomControlsEnabled = false)
         )
 
-        // 2. PIN / MARCADOR FIJO AL CENTRO (Estilo Rappi)
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocationOn,
-                contentDescription = "Pin de ubicación",
-                tint = Color(0xFFD32F2F),
-                modifier = Modifier
-                    .size(48.dp)
-                    .offset(y = (-24).dp) // Compensa la altura del icono para apuntar exactamente con la base del pin
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.LocationOn,
+            contentDescription = "Pin",
+            tint = Color(0xFFD32F2F),
+            modifier = Modifier.size(48.dp).align(Alignment.Center).offset(y = (-24).dp)
+        )
 
-        // 3. TARJETA SUPERIOR: Muestra la dirección actual en texto
+        // TARJETA SUPERIOR: Buscador y Dirección Actual
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopCenter),
+            modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.TopCenter),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = Color(0xFFD32F2F),
-                    modifier = Modifier.size(24.dp)
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Buscador
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Buscar distrito o calle...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { searchLocationFromText(searchQuery) }) {
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color(0xFFD32F2F))
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFD32F2F), unfocusedBorderColor = Color.LightGray
+                    )
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = textAddress,
-                    fontSize = 14.sp,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Medium
-                )
+                Spacer(modifier = Modifier.height(12.dp))
+                // Dirección detectada
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = textAddress, fontSize = 14.sp, color = Color.DarkGray, maxLines = 2)
+                }
             }
         }
 
-        // 4. SECCIÓN INFERIOR: Botones de Confirmar / Cancelar
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.BottomCenter)
-        ) {
+        // BOTONES INFERIORES
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.BottomCenter)) {
             Button(
-                onClick = {
-                    onLocationSelected(textAddress, currentLatLng.latitude, currentLatLng.longitude)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-                shape = RoundedCornerShape(25.dp)
-            ) {
-                Text(
-                    text = "Confirmar ubicación de tienda",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
+                onClick = { onLocationSelected(textAddress, currentLatLng.latitude, currentLatLng.longitude) },
+                modifier = Modifier.fillMaxWidth().height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+            ) { Text("Confirmar ubicación", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
             Spacer(modifier = Modifier.height(8.dp))
-
             Button(
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.8f)),
-                shape = RoundedCornerShape(25.dp)
-            ) {
-                Text(
-                    text = "Cancelar",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                modifier = Modifier.fillMaxWidth().height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+            ) { Text("Cancelar", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         }
     }
 }
