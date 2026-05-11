@@ -33,13 +33,15 @@ import com.tech.tucalle.R
 @Composable
 fun AuthScreen(onNavigateToLogin: () -> Unit, onNavigateToGoogle: () -> Unit) {
 
-    // --- LÓGICA DE FIREBASE SLARK ---
+// --- LÓGICA DE FIREBASE ---
     val context = LocalContext.current
-    val webClientId = "983846518874-6ll4jejtd2jmqpuk84llubast9lfm4kn.apps.googleusercontent.com"
+
+// REEMPLAZA ESTA LÍNEA CON TU NUEVO ID
+    val webClientId = "117716463919-989dsnra1uunh027h4f3lc8m4324tlgf.apps.googleusercontent.com"
 
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(webClientId)
+            .requestIdToken(webClientId) // Ahora sí usará el ID correcto
             .requestEmail()
             .build()
     }

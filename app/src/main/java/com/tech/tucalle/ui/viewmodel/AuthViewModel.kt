@@ -57,7 +57,11 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    private fun buscarRolEnColecciones(uid: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
+    private fun buscarRolEnColecciones(
+        uid: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
         db.collection("usuarios").document(uid).get().addOnSuccessListener { docU ->
             if (docU.exists()) {
                 onSuccess("USUARIO")
@@ -66,13 +70,14 @@ class AuthViewModel : ViewModel() {
                     if (docT.exists()) {
                         onSuccess("TIENDA")
                     } else {
-                        db.collection("qualities").document(uid).get().addOnSuccessListener { docQ ->
-                            if (docQ.exists()) {
-                                onSuccess("QUALITY")
-                            } else {
-                                onFailure("Perfil no encontrado")
+                        db.collection("qualities").document(uid).get()
+                            .addOnSuccessListener { docQ ->
+                                if (docQ.exists()) {
+                                    onSuccess("QUALITY")
+                                } else {
+                                    onFailure("Perfil no encontrado")
+                                }
                             }
-                        }
                     }
                 }
             }
@@ -102,41 +107,78 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // 4. INYECCIÓN COMPLETA (Ahora incluye los Banners del Carrusel)
     fun inyectarDatosDePrueba(onResult: (String) -> Unit) {
-        // Quality
-        val qualityData = hashMapOf(
-            "nombre" to "Sofia Perez", "rol" to "QUALITY",
-            "fotoPerfil" to "https://images.unsplash.com/photo-1438761681033-6461ffad8d80"
+        // Listas de imágenes reales para variedad visual
+        val fotosHuariques = listOf(
+            "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4",
+            "https://images.unsplash.com/photo-1552566626-52f8b828add9",
+            "https://images.unsplash.com/photo-1514933651103-005eec06c04b",
+            "https://images.unsplash.com/photo-1555396273-367ea4eb4db5",
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836"
         )
-        db.collection("qualities").document("mock_user_sofia").set(qualityData)
 
-        // Tiendas
-        val luisData = hashMapOf(
-            "nombre" to "Donde Luis - Broaster", "rol" to "TIENDA", "calificacion" to 4.8,
-            "portadaUrl" to "https://images.unsplash.com/photo-1552566626-52f8b828add9"
+        val fotosPlatos = listOf(
+            "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+            "https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4",
+            "https://images.unsplash.com/photo-1563379091339-03b21bc4a4f8",
+            "https://images.unsplash.com/photo-1550507992-06316ec53ca0"
         )
-        db.collection("tiendas").document("mock_tienda_luis").set(luisData)
 
-        val flashData = hashMapOf(
-            "nombre" to "Salchichones Flash", "rol" to "TIENDA", "calificacion" to 4.5,
-            "portadaUrl" to "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4"
+        val guariquesList = listOf(
+            Triple("si_ronald", "El Ceviche de Ronald", Pair(-12.0883, -77.0312)),
+            Triple("si_chinito", "Sanguchería El Chinito", Pair(-12.0872, -77.0321)),
+            Triple("mf_preferida", "La Preferida", Pair(-12.1278, -77.0198)),
+            Triple("ba_juanito", "Juanito de Barranco", Pair(-12.1496, -77.0207)),
+            Triple("cl_cordano", "Restaurante Cordano", Pair(-12.0447, -77.0289)),
+            Triple("li_ceci", "Chanfainita de la Tía Ceci", Pair(-12.0860, -77.0345)),
+            Triple("su_tito", "Pollería Don Tito", Pair(-12.1102, -77.0003)),
+            Triple("ma_siete", "Siete Sopas", Pair(-12.0911, -77.0540))
         )
-        db.collection("tiendas").document("mock_tienda_flash").set(flashData)
 
-        // Platos y Mural
-        db.collection("platos").add(hashMapOf("idTienda" to "mock_tienda_luis", "nombre" to "Mostrito Poderoso", "precioDescuento" to 12.0))
-        db.collection("mural_comentarios").add(hashMapOf("idTienda" to "mock_tienda_luis", "texto" to "¡Excelente!", "fecha" to Date()))
+        guariquesList.forEachIndexed { index, (id, nombre, coords) ->
+            val distrito = when {
+                id.startsWith("si") -> "San Isidro"
+                id.startsWith("mf") -> "Miraflores"
+                id.startsWith("ba") -> "Barranco"
+                id.startsWith("cl") -> "Cercado"
+                id.startsWith("li") -> "Lince"
+                id.startsWith("su") -> "Surco"
+                id.startsWith("ma") -> "Magdalena"
+                else -> "Lima"
+            }
 
-        // --- NUEVO: BANNERS PARA EL CARRUSEL ---
-        val banner1 = hashMapOf("imageUrl" to "https://images.unsplash.com/photo-1504674900247-0877df9cc836", "activo" to true)
-        val banner2 = hashMapOf("imageUrl" to "https://images.unsplash.com/photo-1555939594-58d7cb561ad1", "activo" to true)
-        val banner3 = hashMapOf("imageUrl" to "https://images.unsplash.com/photo-1493770348161-369560ae357d", "activo" to true)
+            // Calificación aleatoria entre 3.5 y 5.0 para probar el ordenamiento (Sorting)
+            val ratingAleatorio = (35..50).random().toDouble() / 10.0
 
-        db.collection("banners_home").document("banner_promo_1").set(banner1)
-        db.collection("banners_home").document("banner_promo_2").set(banner2)
-        db.collection("banners_home").document("banner_promo_3").set(banner3)
-            .addOnSuccessListener { onResult("¡Datos y Banners inyectados!") }
-            .addOnFailureListener { e -> onResult("Error: ${e.message}") }
+            // 1. INYECTAR TIENDA
+            val tiendaData = hashMapOf(
+                "nombre" to nombre,
+                "calificacion" to ratingAleatorio, // <-- Rating variado
+                "portadaUrl" to fotosHuariques[index % fotosHuariques.size], // <-- Foto variada
+                "horario" to "Abierto hasta las 11PM",
+                "etiquetas" to listOf("Huarique", "Recomendado", distrito),
+                "direccion" to mapOf(
+                    "texto" to "$distrito, Lima",
+                    "latitud" to coords.first,
+                    "longitud" to coords.second
+                )
+            )
+            db.collection("tiendas").document(id).set(tiendaData)
+
+            // 2. INYECTAR PLATOS (CON PRECIOS CORREGIDOS)
+            val pOriginal = (30..50).random().toDouble()
+            val pDescuento = pOriginal * 0.8 // 20% de descuento automático
+
+            val platoData = hashMapOf(
+                "idTienda" to id,
+                "nombre" to "Especial de $nombre",
+                "precioOriginal" to pOriginal,
+                "precioDescuento" to pDescuento, // <-- AHORA SÍ SE GUARDA
+                "calificacion" to 4.8,
+                "imagenUrl" to fotosPlatos[index % fotosPlatos.size]
+            )
+            db.collection("platos").add(platoData)
+        }
+        onResult("Datos inyectados con éxito")
     }
 }

@@ -93,6 +93,7 @@ fun DishCard(
 }
 
 
+@OptIn(ExperimentalLayoutApi::class) // Para usar FlowRow
 @Composable
 fun RestaurantCard(
     nombre: String,
@@ -101,49 +102,82 @@ fun RestaurantCard(
     calificacion: String,
     etiquetas: List<String>,
     portadaUrl: String,
-    onClick: () -> Unit = {} // <-- 1. Agregamos el parámetro onClick
+    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
-            .width(260.dp)
+            .width(280.dp) // Un poco más ancho para dar aire al texto
             .padding(end = 16.dp)
-            .clickable { onClick() }, // <-- 2. ¡Hacemos que toda la tarjeta sea tocable!
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // ... (El resto del contenido de la tarjeta se queda exactamente igual)
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+            // Imagen con altura fija proporcional
+            Box(modifier = Modifier.fillMaxWidth().height(140.dp)) {
                 AsyncImage(
                     model = portadaUrl,
-                    contentDescription = nombre,
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White,
-                    modifier = Modifier.padding(8.dp).size(32.dp).align(Alignment.TopEnd)
-                ) {
-                    Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = "Favorito", tint = Color.Gray, modifier = Modifier.padding(6.dp))
-                }
             }
 
             Column(modifier = Modifier.padding(12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = nombre, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text(text = calificacion, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                // Nombre y Rating en una sola línea controlada
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = nombre,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, // Evita que el nombre rompa la fila
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = calificacion,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.DarkGray
+                    )
                 }
 
-                Text(text = "$distrito • $horario", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                // Distrito y Horario con Ellipsis para que no se corten feo
+                Text(
+                    text = "$distrito • $horario",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
 
-                Row(modifier = Modifier.padding(top = 8.dp)) {
-                    etiquetas.take(3).forEach { etiqueta ->
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // SOLUCIÓN RESPONSIVE: FlowRow para las etiquetas
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    etiquetas.forEach { etiqueta ->
                         Box(
-                            modifier = Modifier.padding(end = 4.dp).background(Color(0xFFD32F2F), shape = RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier
+                                .background(Color(0xFFD32F2F), shape = RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Text(text = etiqueta, fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = etiqueta,
+                                fontSize = 10.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }

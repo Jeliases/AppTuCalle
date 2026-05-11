@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.tech.tucalle" />
-                  <option name="mobileSdkAppId" value="1:983846518874:android:fc1a05cb9176483b699863" />
-                  <option name="projectId" value="apptucalle" />
-                  <option name="projectNumber" value="983846518874" />
+                  <option name="mobileSdkAppId" value="1:117716463919:android:bd60687289a17b7235b1da" />
+                  <option name="projectId" value="apptucalle-62c65" />
+                  <option name="projectNumber" value="117716463919" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

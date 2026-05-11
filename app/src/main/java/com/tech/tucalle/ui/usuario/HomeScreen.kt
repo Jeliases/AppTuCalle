@@ -1,10 +1,15 @@
 package com.tech.tucalle.ui.usuario
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,107 +26,115 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-// ---  COMPONENTES IMPORTADOS ---
-import com.tech.tucalle.ui.components.DishCard
-import com.tech.tucalle.ui.components.RestaurantCard
-import com.tech.tucalle.ui.components.SectionHeader
-import com.tech.tucalle.ui.components.RecommendedLogo
-import com.tech.tucalle.ui.components.RepeatCard
+
+// Componentes y ViewModels
+import com.tech.tucalle.ui.components.*
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
+import com.tech.tucalle.ui.viewmodel.HomeViewModel
 
 @Composable
-fun HomeScreen(authViewModel: AuthViewModel = viewModel(),onRestaurantClick: (String) -> Unit = {}) {
-    var statusMessage by remember { mutableStateOf("") }
+fun HomeScreen(
+    authViewModel: AuthViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel(),
+    onRestaurantClick: (String) -> Unit = {}
+) {
+    // Recolección de estados dinámicos
+    val direccionReal by homeViewModel.direccionActual.collectAsState()
+    val context = LocalContext.current
+    val bannersReales by homeViewModel.banners.collectAsState()
+    val tiendasReales by homeViewModel.tiendasCercanas.collectAsState()
+    val platosReales by homeViewModel.platosPopulares.collectAsState()
+
+    // Launcher para solicitar el permiso de ubicación al sistema
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // El usuario aceptó: ahora sí podemos pedir la ubicación real
+            homeViewModel.obtenerUbicacionReal(context)
+        }
+        // Si denegó, el ViewModel mantiene "Detectando ubicación..." o el fallback que tengas
+    }
+
+    // Efecto para activar el GPS apenas cargue la pantalla
+    LaunchedEffect(Unit) {
+        val permiso = Manifest.permission.ACCESS_FINE_LOCATION
+        if (ContextCompat.checkSelfPermission(context, permiso) == PackageManager.PERMISSION_GRANTED) {
+            // Ya tenemos permiso → llamamos directo al ViewModel
+            homeViewModel.obtenerUbicacionReal(context)
+        } else {
+            // No hay permiso → lanzamos el diálogo del sistema
+            permissionLauncher.launch(permiso)
+        }
+    }
 
     Scaffold(
         bottomBar = { BottomNavigationBar() },
         containerColor = Color.White
     ) { paddingValues ->
-
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // --- HEADER Y BUSCADOR ---
+
+            // SECCIÓN 1: CABECERA DINÁMICA Y ACCIÓN
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    TopLocationBar(direccion = "Jr. Alcedo Beltrán 244")
+                    // direccionReal viene del GPS a través del StateFlow del ViewModel
+                    TopLocationBar(direccion = direccionReal)
+
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (statusMessage.isNotEmpty()) {
-                        Text(
-                            text = statusMessage,
-                            color = if (statusMessage.contains("Error")) Color.Red else Color(0xFF4CAF50),
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                    Button(
+                        onClick = { authViewModel.inyectarDatosDePrueba { /* Inyección */ } },
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                    ) {
+                        Text("Cargar Huariques Reales", color = Color.White, fontSize = 12.sp)
                     }
 
-                    Button(
-                        onClick = {
-                            statusMessage = "Inyectando datos..."
-                            authViewModel.inyectarDatosDePrueba { resultado ->
-                                statusMessage = resultado
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                    ) {
-                        Text("Inyectar Datos (Borrar luego)", fontSize = 16.sp, color = Color.White)
-                    }
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    val bannersTemporales = listOf(
-                        "https://images.unsplash.com/photo-1504674900247-0877df9cc836",
-                        "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",
-                        "https://images.unsplash.com/photo-1493770348161-369560ae357d"
-                    )
-                    PromoCarousel(banners = bannersTemporales)
-                    Spacer(modifier = Modifier.height(24.dp))
+                    if (bannersReales.isNotEmpty()) {
+                        PromoCarousel(banners = bannersReales.map { it.imageUrl })
+                    } else {
+                        Box(modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(16.dp)).background(Color.LightGray))
+                    }
 
+                    Spacer(modifier = Modifier.height(24.dp))
                     CategoriesRow()
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Text("¿Qué se te antoja hoy?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SearchBarUI()
                     Spacer(modifier = Modifier.height(30.dp))
                 }
             }
 
-            // --- SECCIÓN: POPULARES AHORA ---
+            // SECCIÓN 2: POPULARES AHORA (Platos con Precios Formateados)
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    SectionHeader(title = "Populares ahora", onVerTodoClick = { /* Navegar a lista completa */ })
+                    SectionHeader(title = "Populares ahora")
                     Spacer(modifier = Modifier.height(12.dp))
 
                     LazyRow {
-                        item {
+                        items(platosReales) { plato ->
+                            val porcentaje = if (plato.precioOriginal > 0) {
+                                ((1 - (plato.precioDescuento / plato.precioOriginal)) * 100).toInt()
+                            } else 0
+
                             DishCard(
-                                nombre = "Pizza carnivora",
-                                restaurante = "Fast food",
-                                calificacion = "4.8",
-                                precioOriginal = "S/ 40.00",
-                                precioDescuento = "S/ 30.00",
-                                descuentoTag = "-25%",
-                                imagenUrl = "https://images.unsplash.com/photo-1513104890138-7c749659a591"
-                            )
-                        }
-                        item {
-                            DishCard(
-                                nombre = "Pollo a la Brasa",
-                                restaurante = "Don Lucho",
-                                calificacion = "4.8",
-                                precioOriginal = "S/ 60.00",
-                                precioDescuento = "S/ 45.00",
-                                descuentoTag = "-25%",
-                                imagenUrl = "https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4"
+                                nombre = plato.nombre,
+                                restaurante = "Huarique Real",
+                                calificacion = plato.calificacion.toString(),
+                                precioOriginal = "S/ ${"%.2f".format(plato.precioOriginal)}",
+                                precioDescuento = "S/ ${"%.2f".format(plato.precioDescuento)}",
+                                descuentoTag = "-$porcentaje%",
+                                imagenUrl = plato.imagenUrl
                             )
                         }
                     }
@@ -129,105 +142,56 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(),onRestaurantClick: (St
                 }
             }
 
-            // --- SECCIÓN: RESTAURANTES CERCA A TI ---
-// --- SECCIÓN: RESTAURANTES CERCA A TI ---
+            // SECCIÓN 3: HUARIQUES RECOMENDADOS (Ordenados por Rating real)
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    SectionHeader(title = "Restaurantes cerca a ti", onVerTodoClick = { /* Navegar a lista completa */ })
+                    SectionHeader(title = "Huariques recomendados")
                     Spacer(modifier = Modifier.height(12.dp))
 
                     LazyRow {
-                        item {
+                        items(tiendasReales) { tienda ->
                             RestaurantCard(
-                                nombre = "Donde Luis - Broaster",
-                                distrito = "Comas",
-                                horario = "Cierra 9PM",
-                                calificacion = "4.8",
-                                etiquetas = listOf("Sandwich", "Broaster", "Pollo a la Brasa"),
-                                portadaUrl = "https://images.unsplash.com/photo-1552566626-52f8b828add9",
-                                onClick = { onRestaurantClick("mock_tienda_luis") } // <-- Clic para Donde Luis
-                            )
-                        }
-
-                        // AQUÍ VA TU CÓDIGO NUEVO REEMPLAZANDO AL ANTERIOR
-                        item {
-                            RestaurantCard(
-                                nombre = "Salchichones Flash",
-                                distrito = "Villa El Salvador",
-                                horario = "Cierra 3AM",
-                                calificacion = "4.5",
-                                etiquetas = listOf("Desayunos", "Almuerzos", "Cenas", "Jugos"),
-                                portadaUrl = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4",
-                                onClick = { onRestaurantClick("mock_tienda_flash") } // <-- ¡El clic que redirige!
-                            )
-                        }
-
-                        item {
-                            RestaurantCard(
-                                nombre = "Mayta",
-                                distrito = "Miraflores",
-                                horario = "Cierra 9PM",
-                                calificacion = "4.8",
-                                etiquetas = listOf("Almuerzos", "Gourmet"),
-                                portadaUrl = "https://images.unsplash.com/photo-1514933651103-005eec06c04b",
-                                onClick = { onRestaurantClick("mock_tienda_mayta") } // <-- Clic para Mayta
+                                nombre = tienda.nombre,
+                                distrito = tienda.obtenerDistrito(),
+                                horario = tienda.horario,
+                                calificacion = "%.1f".format(tienda.calificacion),
+                                etiquetas = tienda.etiquetas,
+                                portadaUrl = tienda.portadaUrl,
+                                onClick = { onRestaurantClick(tienda.id) }
                             )
                         }
                     }
                     Spacer(modifier = Modifier.height(30.dp))
                 }
             }
-            // --- SECCIÓN: LOS MÁS RECOMENDADOS ---
+
+            // SECCIÓN 4: LOS MÁS RECOMENDADOS (Logos de Firebase)
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Text("Los más recomendados", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text("Los más recomendados", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     LazyRow {
-                        val logosTemp = listOf(
-                            "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9",
-                            "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9",
-                            "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9",
-                            "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9"
-                        )
-                        items(logosTemp.size) { index ->
-                            RecommendedLogo(imageUrl = logosTemp[index])
+                        items(tiendasReales.take(6)) { tienda ->
+                            RecommendedLogo(imageUrl = tienda.portadaUrl)
                         }
                     }
                     Spacer(modifier = Modifier.height(30.dp))
                 }
             }
 
-            // --- SECCIÓN: PORQUE LO BUENO SE REPITE ---
+            // SECCIÓN 5: PORQUE LO BUENO SE REPITE
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(end = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Porque lo bueno se repite", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Box(
-                            modifier = Modifier
-                                .background(Color.DarkGray, shape = RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text("Amigos", color = Color.White, fontSize = 10.sp)
-                        }
-                    }
+                    Text("Porque lo bueno se repite", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     LazyRow {
-                        item {
+                        items(tiendasReales.reversed().take(3)) { tienda ->
                             RepeatCard(
-                                imageUrl = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4",
-                                title = "Salchichones Flash"
-                            )
-                        }
-                        item {
-                            RepeatCard(
-                                imageUrl = "https://images.unsplash.com/photo-1552566626-52f8b828add9",
-                                title = "Donde Luis - Broaster"
+                                imageUrl = tienda.portadaUrl,
+                                title = tienda.nombre,
+                                onClick = { onRestaurantClick(tienda.id) }
                             )
                         }
                     }
@@ -238,45 +202,29 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(),onRestaurantClick: (St
     }
 }
 
-// ------------------------------------------------------------------------
-// COMPONENTES INTERNOS
-// ------------------------------------------------------------------------
+// --- COMPONENTES UI (No se ha borrado nada) ---
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PromoCarousel(banners: List<String>) {
     val pagerState = rememberPagerState(pageCount = { banners.size })
-
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-                .clip(RoundedCornerShape(16.dp))
+            modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(16.dp))
         ) { page ->
             AsyncImage(
                 model = banners[page],
-                contentDescription = "Banner Promocional",
+                contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.wrapContentHeight(),
-            horizontalArrangement = Arrangement.Center
-        ) {
+        Row(horizontalArrangement = Arrangement.Center) {
             repeat(banners.size) { iteration ->
                 val color = if (pagerState.currentPage == iteration) Color(0xFFD32F2F) else Color.LightGray
-                val size = if (pagerState.currentPage == iteration) 10.dp else 8.dp
-                Box(
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .clip(CircleShape)
-                        .background(color)
-                        .size(size)
-                )
+                Box(modifier = Modifier.padding(2.dp).clip(CircleShape).background(color).size(8.dp))
             }
         }
     }
@@ -284,14 +232,19 @@ fun PromoCarousel(banners: List<String>) {
 
 @Composable
 fun TopLocationBar(direccion: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.LocationOn, contentDescription = "Ubicación", tint = Color(0xFFD32F2F))
+            Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFD32F2F))
             Spacer(modifier = Modifier.width(8.dp))
+            // Este texto cambiará solo según el distrito donde estés parado
             Text(text = direccion, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
         }
-        IconButton(onClick = { /* Abrir notificaciones */ }) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Color(0xFFD32F2F))
+        IconButton(onClick = { }) {
+            Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFFD32F2F))
         }
     }
 }
@@ -303,7 +256,7 @@ fun CategoriesRow() {
         categorias.forEach { cat ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(modifier = Modifier.size(60.dp).clip(CircleShape).background(Color(0xFFFFF0F0)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.ShoppingCart, contentDescription = cat, tint = Color(0xFFD32F2F))
+                    Icon(Icons.Outlined.ShoppingCart, contentDescription = null, tint = Color(0xFFD32F2F))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = cat, fontSize = 12.sp, color = Color.DarkGray)
@@ -316,8 +269,8 @@ fun CategoriesRow() {
 fun SearchBarUI() {
     var query by remember { mutableStateOf("") }
     OutlinedTextField(
-        value = query, onValueChange = { query = it }, placeholder = { Text("Buscar huariques, platos...") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray) },
+        value = query, onValueChange = { query = it }, placeholder = { Text("Buscar huariques...") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE0E0E0), focusedBorderColor = Color(0xFFD32F2F))
     )
@@ -330,8 +283,10 @@ fun BottomNavigationBar() {
         val icons = listOf(Icons.Outlined.Search, Icons.Outlined.Star, Icons.Outlined.ShoppingCart, Icons.Outlined.FavoriteBorder, Icons.Outlined.Person)
         items.forEachIndexed { index, item ->
             NavigationBarItem(
-                icon = { Icon(icons[index], contentDescription = item) }, label = { Text(item, fontSize = 10.sp) },
-                selected = index == 0, onClick = { /* Navegar */ },
+                icon = { Icon(icons[index], contentDescription = null) },
+                label = { Text(item, fontSize = 10.sp) },
+                selected = index == 0,
+                onClick = { },
                 colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFFD32F2F), selectedTextColor = Color(0xFFD32F2F), unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray, indicatorColor = Color.White)
             )
         }
