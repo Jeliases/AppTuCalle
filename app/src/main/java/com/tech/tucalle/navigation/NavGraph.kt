@@ -26,6 +26,7 @@ import androidx.navigation.navArgument
 import com.tech.tucalle.ui.auth.*
 import com.tech.tucalle.ui.usuario.HomeScreen
 import com.tech.tucalle.ui.huarique.StoreHomeScreen
+import com.tech.tucalle.ui.usuario.ProfileUsuarioScreen
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -148,8 +149,10 @@ fun NavGraph(navController: NavHostController) {
         // ==========================================================
 
         // A. HOME USUARIO (Mural principal modificado)
+
         composable("home_user") {
             HomeScreen(
+                navController = navController, // <--- AGREGA ESTO
                 authViewModel = authViewModel,
                 onRestaurantClick = { idTienda ->
                     navController.navigate("mural_tienda/$idTienda")
@@ -179,6 +182,10 @@ fun NavGraph(navController: NavHostController) {
                 titulo = "Panel Administrativo / TI",
                 subtitulo = "Sala de aprobaciones pendientes para nuevos platos y validación de comercios."
             )
+        }
+        // Agrega esto junto a las otras rutas (ej: después de home_admin)
+        composable("perfil") {
+            ProfileUsuarioScreen()
         }
 
         // CONVERGENCIA: MURAL INDEPENDIENTE DESDE CARDS
@@ -290,4 +297,13 @@ fun MuralTiendaBlancoScreen(idTienda: String) {
             lineHeight = 24.sp
         )
     }
+}
+
+// Dentro o cerca de NavGraph.kt
+sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
+    object Home : BottomNavItem("home", "Home", Icons.Outlined.Home)
+    object Ofertas : BottomNavItem("ofertas", "Ofertas", Icons.Outlined.Star)
+    object Pedidos : BottomNavItem("pedidos", "Pedidos", Icons.Outlined.ShoppingCart)
+    object Favoritos : BottomNavItem("favoritos", "Favoritos", Icons.Outlined.FavoriteBorder)
+    object Perfil : BottomNavItem("perfil", "Perfil", Icons.Outlined.Person)
 }

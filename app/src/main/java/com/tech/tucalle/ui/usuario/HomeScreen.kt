@@ -2,6 +2,8 @@ package com.tech.tucalle.ui.usuario
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.http.SslCertificate.restoreState
+import android.net.http.SslCertificate.saveState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,15 +34,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
+import com.tech.tucalle.data.PlatoDTO
+import com.tech.tucalle.navigation.BottomNavItem
 
 // Componentes y ViewModels
 import com.tech.tucalle.ui.components.*
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import com.tech.tucalle.ui.viewmodel.HomeViewModel
 
+
+
 @Composable
 fun HomeScreen(
+    navController: NavHostController,
     authViewModel: AuthViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel(),
     onRestaurantClick: (String) -> Unit = {}
@@ -76,7 +87,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar() },
+        bottomBar = { BottomNavigationBar(navController) },
         containerColor = Color.White
     ) { paddingValues ->
         LazyColumn(
@@ -130,7 +141,7 @@ fun HomeScreen(
                             DishCard(
                                 nombre = plato.nombre,
                                 restaurante = "Huarique Real",
-                                calificacion = plato.calificacion.toString(),
+                                calificacion = plato.calificacionPlato.toString(),
                                 precioOriginal = "S/ ${"%.2f".format(plato.precioOriginal)}",
                                 precioDescuento = "S/ ${"%.2f".format(plato.precioDescuento)}",
                                 descuentoTag = "-$porcentaje%",
@@ -154,7 +165,7 @@ fun HomeScreen(
                                 nombre = tienda.nombre,
                                 distrito = tienda.obtenerDistrito(),
                                 horario = tienda.horario,
-                                calificacion = "%.1f".format(tienda.calificacion),
+                                calificacion = "%.1f".format(tienda.calificacionGeneral),
                                 etiquetas = tienda.etiquetas,
                                 portadaUrl = tienda.portadaUrl,
                                 onClick = { onRestaurantClick(tienda.id) }
@@ -277,17 +288,38 @@ fun SearchBarUI() {
 }
 
 @Composable
-fun BottomNavigationBar() {
+fun BottomNavigationBar(navController: NavController) {
+    val items = listOf(
+        BottomNavItem.Home,
+        BottomNavItem.Ofertas,
+        BottomNavItem.Pedidos,
+        BottomNavItem.Favoritos,
+        BottomNavItem.Perfil
+    )
+
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        val items = listOf("Mural", "Ofertas", "Pedidos", "Favoritos", "Perfil")
-        val icons = listOf(Icons.Outlined.Search, Icons.Outlined.Star, Icons.Outlined.ShoppingCart, Icons.Outlined.FavoriteBorder, Icons.Outlined.Person)
-        items.forEachIndexed { index, item ->
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+
+        items.forEach { item ->
             NavigationBarItem(
-                icon = { Icon(icons[index], contentDescription = null) },
-                label = { Text(item, fontSize = 10.sp) },
-                selected = index == 0,
-                onClick = { },
-                colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFFD32F2F), selectedTextColor = Color(0xFFD32F2F), unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray, indicatorColor = Color.White)
+                icon = { Icon(item.icon, contentDescription = item.title) },
+                label = { Text(item.title, fontSize = 10.sp) },
+                selected = currentRoute == item.route,
+                onClick = {
+                    navController.navigate(item.route) {
+                        // Evita acumular pantallas infinitas
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color(0xFFD32F2F),
+                    selectedTextColor = Color(0xFFD32F2F)
+                )
             )
         }
     }
