@@ -1,94 +1,278 @@
 package com.tech.tucalle.ui.huarique
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import com.tech.tucalle.ui.viewmodel.StoreViewModel
 
 @Composable
-fun StoreHomeScreen(authViewModel: AuthViewModel) { // Agregado el parámetro para NavGraph
+fun StoreHomeScreen(
+    authViewModel: AuthViewModel,
+    navController: NavHostController? = null
+) {
     val storeViewModel: StoreViewModel = viewModel()
     val uiState by storeViewModel.uiState.collectAsState()
     val scroll = rememberScrollState()
 
-    Scaffold(containerColor = Color.White) { p ->
-        Column(modifier = Modifier.padding(p).fillMaxSize().verticalScroll(scroll).padding(20.dp)) {
+    // Tab seleccionado en el navbar
+    var navSelected by remember { mutableStateOf("Home") }
 
-            // CABECERA IDENTICA A TU FOTO (image_6a32b9)
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                AsyncImage(
-                    model = "https://tu-logo-aqui.png",
-                    contentDescription = null,
-                    modifier = Modifier.size(100.dp).clip(CircleShape).background(Color.LightGray)
-                )
-                Text("Mi perfil", fontSize = 14.sp, color = Color.Gray)
-                Text(uiState.nombreTienda.ifBlank { "Cargando..." }, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Text("Huarique", color = Color.Gray)
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // SELECTOR ESTADO ROJO/GRIS
-            Text("Estado de tu tienda", fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth().height(45.dp).clip(RoundedCornerShape(23.dp)).background(Color(0xFFE0E0E0))) {
-                val mod = Modifier.weight(1f).fillMaxHeight()
-                Button(onClick = { storeViewModel.cambiarEstado("Abierto") }, modifier = mod,
-                    colors = ButtonDefaults.buttonColors(containerColor = if(uiState.estadoLocal == "Abierto") Color(0xFFD32F2F) else Color.Transparent),
-                    shape = RoundedCornerShape(23.dp)) { Text("Abierto", color = if(uiState.estadoLocal == "Abierto") Color.White else Color.Black) }
-
-                Button(onClick = { storeViewModel.cambiarEstado("Cerrado") }, modifier = mod,
-                    colors = ButtonDefaults.buttonColors(containerColor = if(uiState.estadoLocal == "Cerrado") Color(0xFFD32F2F) else Color.Transparent),
-                    shape = RoundedCornerShape(23.dp)) { Text("Cerrado", color = if(uiState.estadoLocal == "Cerrado") Color.White else Color.Black) }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // CAMPOS DE TEXTO (Foto 1)
-            Text("Información de tu tienda", fontWeight = FontWeight.Bold)
-            CustomField("Razón Social", uiState.razonSocial, storeViewModel::onRazonSocialChange)
-            CustomField("Nombre de la tienda", uiState.nombreTienda, storeViewModel::onNombreChange)
-            CustomField("Celular", uiState.celular, storeViewModel::onCelularChange)
-            CustomField("WhatsApp", uiState.whatsapp, storeViewModel::onWhatsappChange)
-            CustomField("Dirección", uiState.direccion, storeViewModel::onDireccionChange)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // CAMPOS ENCARGADO (Foto 2)
-            Text("Información de Encargado", fontWeight = FontWeight.Bold)
-            CustomField("Nombres y Apellidos", uiState.encargadoNombre, storeViewModel::onEncargadoNombreChange)
-            CustomField("Número de contacto", uiState.encargadoContacto, storeViewModel::onEncargadoContactoChange)
-            CustomField("Correo electrónico", uiState.encargadoEmail, storeViewModel::onEncargadoEmailChange)
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // BOTÓN GUARDAR ROJO
-            Button(
-                onClick = { storeViewModel.guardarCambios() },
-                modifier = Modifier.fillMaxWidth().height(55.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-                shape = RoundedCornerShape(28.dp)
+    Scaffold(
+        containerColor = Color.White,
+        bottomBar = {
+            StoreBottomNav(
+                selected = navSelected,
+                onSelect = { item ->
+                    navSelected = item
+                    when (item) {
+                        "Perfil" -> navController?.navigate("perfil_tienda")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(20.dp)
+        ) {
+            // ── CABECERA ────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Guardar cambios", color = Color.White, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = uiState.logoUrl.ifBlank { "https://ui-avatars.com/api/?name=${uiState.nombreTienda}&background=D32F2F&color=fff&size=100" },
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Mi perfil", color = Color.Gray, fontSize = 12.sp)
+                        Text(
+                            uiState.nombreTienda.ifBlank { "Cargando..." },
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text("Huarique", color = Color.Gray, fontSize = 13.sp)
+                    }
+                }
+                // Botón de configuración va al perfil
+                IconButton(onClick = { navController?.navigate("perfil_tienda") }) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Ajustes", tint = Color(0xFFD32F2F))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // ── TARJETA DE MÉTRICAS ─────────────────────────────────
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Plan con botón activar
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(uiState.plan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Plan Actual", color = Color.Gray, fontSize = 11.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("Mejora tu plan", color = Color.Gray, fontSize = 9.sp)
+                        Button(
+                            onClick = { },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Text("ACTIVAR", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Divider(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(80.dp),
+                        color = Color.LightGray
+                    )
+
+                    // Stats
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text("${uiState.seguidores} seguidores", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("${uiState.totalResenas} reseñas", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val horario = if (uiState.horarioApertura.isNotBlank() && uiState.horarioCierre.isNotBlank())
+                            "${uiState.horarioApertura} – ${uiState.horarioCierre}"
+                        else "Sin horario"
+                        Text(horario, fontSize = 12.sp, color = Color.Gray)
+                        Text("horario", color = Color.Gray, fontSize = 10.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── ESTADO ABIERTO / CERRADO ────────────────────────────
+            Text("Estado de tu tienda", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xFFE0E0E0))
+            ) {
+                listOf("Abierto", "Cerrado").forEach { estado ->
+                    val isSelected = uiState.estadoLocal == estado
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(if (isSelected) Color(0xFFD32F2F) else Color.Transparent)
+                            .clickable { storeViewModel.cambiarEstado(estado) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            estado,
+                            color = if (isSelected) Color.White else Color.Black,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── SECCIÓN "EN DESARROLLO" ─────────────────────────────
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8F8)),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Outlined.Build,
+                        contentDescription = null,
+                        tint = Color(0xFFD32F2F),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Métricas y estadísticas",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Aquí verás tus platos más populares, recomendaciones recibidas y el rendimiento de tu huarique.",
+                        color = Color.Gray,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "ESTAMOS TRABAJANDO EN ELLO",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.LightGray,
+                        letterSpacing = 2.sp
+                    )
+                }
             }
         }
     }
 }
 
+// ── NAVBAR TIENDA ────────────────────────────────────────────────
+@Composable
+fun StoreBottomNav(selected: String, onSelect: (String) -> Unit) {
+    data class NavItem(val label: String, val icon: ImageVector)
+
+    val items = listOf(
+        NavItem("Home",    Icons.Outlined.Home),
+        NavItem("Platos",  Icons.Outlined.MenuBook),
+        NavItem("Reseñas", Icons.Outlined.Star),
+        NavItem("Métricas",Icons.Outlined.BarChart),
+        NavItem("Perfil",  Icons.Outlined.Person)
+    )
+
+    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
+        items.forEach { item ->
+            val isSelected = selected == item.label
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        item.icon,
+                        contentDescription = item.label,
+                        tint = if (isSelected) Color(0xFFD32F2F) else Color.Gray
+                    )
+                },
+                label = {
+                    Text(
+                        item.label,
+                        fontSize = 10.sp,
+                        color = if (isSelected) Color(0xFFD32F2F) else Color.Gray
+                    )
+                },
+                selected = isSelected,
+                onClick = { onSelect(item.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor   = Color(0xFFD32F2F),
+                    selectedTextColor   = Color(0xFFD32F2F),
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray,
+                    indicatorColor      = Color.White
+                )
+            )
+        }
+    }
+}
+
+// ── CAMPO REUTILIZABLE ────────────────────────────────────────────
 @Composable
 fun CustomField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
@@ -98,15 +282,12 @@ fun CustomField(label: String, value: String, onValueChange: (String) -> Unit) {
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
-                // SEPARAMOS LOS COLORES DEL CONTENEDOR (Solución al error)
-                focusedContainerColor = Color.Transparent,
+                focusedContainerColor   = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-
-                // MANTENEMOS TU IDENTIDAD ROJA
-                focusedIndicatorColor = Color(0xFFD32F2F),
+                disabledContainerColor  = Color.Transparent,
+                focusedIndicatorColor   = Color(0xFFD32F2F),
                 unfocusedIndicatorColor = Color.LightGray,
-                cursorColor = Color(0xFFD32F2F)
+                cursorColor             = Color(0xFFD32F2F)
             )
         )
     }

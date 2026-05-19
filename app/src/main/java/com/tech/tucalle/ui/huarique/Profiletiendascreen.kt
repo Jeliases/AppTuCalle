@@ -1,4 +1,4 @@
-package com.tech.tucalle.ui.usuario
+package com.tech.tucalle.ui.huarique
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,29 +21,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.tech.tucalle.navigation.BottomNavigationBarDynamic
 import com.tech.tucalle.ui.viewmodel.ProfileViewModel
+import com.tech.tucalle.ui.viewmodel.StoreViewModel
 
 @Composable
-fun ProfileUsuarioScreen(
+fun ProfileTiendaScreen(
     onBack: () -> Unit = {},
     onLogout: () -> Unit = {},
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(),
+    storeViewModel: StoreViewModel = viewModel()
 ) {
-    val uiState by profileViewModel.uiState.collectAsState()
+    val profile by profileViewModel.uiState.collectAsState()
+    val store   by storeViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf("Ajustes") }
     var showFotoDialog by remember { mutableStateOf(false) }
     var nuevaFotoUrl by remember { mutableStateOf("") }
     val scroll = rememberScrollState()
 
-    // Diálogo para cambiar foto (como WhatsApp — pegar URL)
+    // Diálogo para cambiar foto
     if (showFotoDialog) {
         AlertDialog(
             onDismissRequest = { showFotoDialog = false },
-            title = { Text("Cambiar foto de perfil", fontWeight = FontWeight.Bold) },
+            title = { Text("Cambiar logo", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("Pega la URL de tu nueva foto:", color = Color.Gray, fontSize = 13.sp)
+                    Text("Pega la URL de la nueva imagen:", color = Color.Gray, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = nuevaFotoUrl,
@@ -60,19 +62,16 @@ fun ProfileUsuarioScreen(
                 Button(
                     onClick = {
                         if (nuevaFotoUrl.isNotBlank()) {
-                            profileViewModel.onFotoUrlChange(nuevaFotoUrl)
-                            profileViewModel.guardarCambios()
+                            storeViewModel.onLogoUrlChange(nuevaFotoUrl)
+                            storeViewModel.guardarCambios()
                         }
                         showFotoDialog = false
-                        nuevaFotoUrl = ""
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                 ) { Text("Guardar") }
             },
             dismissButton = {
-                TextButton(onClick = { showFotoDialog = false; nuevaFotoUrl = "" }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { showFotoDialog = false }) { Text("Cancelar") }
             }
         )
     }
@@ -80,11 +79,7 @@ fun ProfileUsuarioScreen(
     Scaffold(
         containerColor = Color.White,
         bottomBar = {
-            BottomNavigationBarDynamic(
-                rol = "USUARIO",
-                currentSelection = "Perfil",
-                onItemClick = { item -> if (item == "Home") onBack() }
-            )
+            StoreBottomNav(selected = "Perfil", onSelect = { if (it == "Home") onBack() })
         }
     ) { padding ->
         Column(
@@ -102,19 +97,19 @@ fun ProfileUsuarioScreen(
                     .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Foto con botón cámara
                 Box {
                     AsyncImage(
-                        model = uiState.fotoUrl.ifBlank {
-                            "https://ui-avatars.com/api/?name=${uiState.nombre}+${uiState.apellidos}&background=D32F2F&color=fff&size=100"
+                        model = store.logoUrl.ifBlank {
+                            "https://ui-avatars.com/api/?name=${store.nombreTienda}&background=D32F2F&color=fff&size=100"
                         },
-                        contentDescription = "Foto de perfil",
+                        contentDescription = "Logo tienda",
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
                             .background(Color.LightGray),
                         contentScale = ContentScale.Crop
                     )
+                    // Botón cámara encima de la foto
                     Box(
                         modifier = Modifier
                             .size(26.dp)
@@ -136,17 +131,17 @@ fun ProfileUsuarioScreen(
                 Column {
                     Text("Mi perfil", color = Color.Gray, fontSize = 13.sp)
                     Text(
-                        "${uiState.nombre} ${uiState.apellidos}".trim().ifBlank { "Cargando..." },
+                        store.nombreTienda.ifBlank { "Cargando..." },
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text("Usuario", color = Color.Gray, fontSize = 14.sp)
+                    Text("Huarique", color = Color.Gray, fontSize = 14.sp)
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── STATS ──────────────────────────────────────────────
+            // ── TARJETA STATS ──────────────────────────────────────
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,13 +154,37 @@ fun ProfileUsuarioScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    StatItem("${uiState.totalHuariques}", "huariques")
-                    Divider(modifier = Modifier.width(1.dp).height(40.dp), color = Color.LightGray)
-                    StatItem(profileViewModel.calcularAntiguedad(), "antigüedad")
-                    Divider(modifier = Modifier.width(1.dp).height(40.dp), color = Color.LightGray)
-                    StatItem("${uiState.totalResenas}", "reseñas")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(store.plan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Plan Actual", color = Color.Gray, fontSize = 10.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Mejora tu plan", color = Color.Gray, fontSize = 9.sp)
+                        Button(
+                            onClick = {},
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("ACTIVAR", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Divider(modifier = Modifier.width(1.dp).height(70.dp), color = Color.LightGray)
+
+                    Column {
+                        Text("${store.seguidores} seguidores", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("${store.totalResenas} reseñas", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val horario = if (store.horarioApertura.isNotBlank())
+                            "${store.horarioApertura} – ${store.horarioCierre}"
+                        else "Sin horario"
+                        Text(horario, fontSize = 12.sp, color = Color.Gray)
+                    }
                 }
             }
 
@@ -179,9 +198,8 @@ fun ProfileUsuarioScreen(
                 horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 listOf(
-                    "Ajustes"       to Icons.Outlined.Settings,
-                    "Mis huariques" to Icons.Outlined.Favorite,
-                    "Mis pedidos"   to Icons.Outlined.ShoppingBag
+                    "Ajustes" to Icons.Outlined.Settings,
+                    "Mis reseñas" to Icons.Outlined.Star
                 ).forEach { (tab, icon) ->
                     val isSelected = selectedTab == tab
                     Column(
@@ -196,7 +214,7 @@ fun ProfileUsuarioScreen(
                         )
                         Text(
                             tab,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = if (isSelected) Color(0xFFD32F2F) else Color.Gray,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
@@ -213,21 +231,21 @@ fun ProfileUsuarioScreen(
             }
 
             Divider(color = Color(0xFFF0F0F0), modifier = Modifier.padding(top = 8.dp))
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── CONTENIDO ──────────────────────────────────────────
+            // ── CONTENIDO TABS ─────────────────────────────────────
             when (selectedTab) {
-                "Ajustes"       -> AjustesUsuarioContent(uiState, profileViewModel)
-                "Mis huariques" -> ProximamenteContent("Mis Huariques favoritos", "Aquí verás los huariques que has marcado como favoritos.")
-                "Mis pedidos"   -> ProximamenteContent("Mis Pedidos", "Aquí verás tu historial de pedidos con opciones para repetir y dejar reseña.")
+                "Ajustes"     -> AjustesTiendaContent(store, storeViewModel)
+                "Mis reseñas" -> MisResenasTiendaContent()
             }
 
-            // Mensaje de guardado
-            if (uiState.mensajeGuardado.isNotBlank()) {
+            // Mensaje guardado
+            if (store.mensajeGuardado.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    uiState.mensajeGuardado,
-                    color = if (uiState.mensajeGuardado.startsWith("✅")) Color(0xFF4CAF50) else Color.Red,
+                    store.mensajeGuardado,
+                    color = if (store.mensajeGuardado.startsWith("✅")) Color(0xFF4CAF50) else Color.Red,
                     modifier = Modifier.padding(horizontal = 24.dp),
                     fontSize = 13.sp
                 )
@@ -239,47 +257,98 @@ fun ProfileUsuarioScreen(
 }
 
 @Composable
-private fun StatItem(valor: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(valor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Text(label, color = Color.Gray, fontSize = 11.sp)
-    }
-}
-
-@Composable
-private fun AjustesUsuarioContent(
-    uiState: com.tech.tucalle.ui.viewmodel.ProfileUiState,
-    vm: ProfileViewModel
+private fun AjustesTiendaContent(
+    store: com.tech.tucalle.ui.viewmodel.StoreUiState,
+    vm: StoreViewModel
 ) {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-        Text("Información de tu cuenta", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        Spacer(modifier = Modifier.height(16.dp))
 
-        PerfilField("Nombre(s)*", uiState.nombre, vm::onNombreChange)
-        PerfilField("Apellido(s)*", uiState.apellidos, vm::onApellidosChange)
-
-        // Correo solo lectura
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            Text("Correo Electrónico*", color = Color.Gray, fontSize = 12.sp)
-            TextField(
-                value = uiState.correo,
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor   = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor  = Color.Transparent,
-                    focusedIndicatorColor   = Color.LightGray,
-                    unfocusedIndicatorColor = Color.LightGray
-                )
-            )
+        // Estado abierto/cerrado
+        Text("Estado de tu tienda", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color(0xFFE0E0E0))
+        ) {
+            listOf("Abierto", "Cerrado").forEach { estado ->
+                val isSelected = store.estadoLocal == estado
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (isSelected) Color(0xFFD32F2F) else Color.Transparent)
+                        .clickable { vm.cambiarEstado(estado) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        estado,
+                        color = if (isSelected) Color.White else Color.Black,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
-        PerfilField("Celular*", uiState.celular, vm::onCelularChange)
-        PerfilField("Fecha de nacimiento*", uiState.fechaNacimiento, vm::onFechaNacimientoChange,
-            placeholder = "DD/MM/AAAA")
-        PerfilField("Número de identidad*", uiState.dni, vm::onDniChange)
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Horario
+        Text("Horario", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Apertura", color = Color.Gray, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = store.horarioApertura,
+                    onValueChange = { vm.onHorarioAperturaChange(it) },
+                    placeholder = { Text("08:00 AM") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFD32F2F),
+                        unfocusedBorderColor = Color.LightGray
+                    )
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Cierre", color = Color.Gray, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = store.horarioCierre,
+                    onValueChange = { vm.onHorarioCierreChange(it) },
+                    placeholder = { Text("10:00 PM") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFD32F2F),
+                        unfocusedBorderColor = Color.LightGray
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Info de tienda
+        Text("Información de tu tienda", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        CustomField("Razón Social",       store.razonSocial,       vm::onRazonSocialChange)
+        CustomField("Nombre de la tienda",store.nombreTienda,      vm::onNombreChange)
+        CustomField("Celular",            store.celular,           vm::onCelularChange)
+        CustomField("WhatsApp",           store.whatsapp,          vm::onWhatsappChange)
+        CustomField("Dirección",          store.direccion,         vm::onDireccionChange)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Info encargado
+        Text("Información de Encargado", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        CustomField("Nombres y Apellidos",store.encargadoNombre,   vm::onEncargadoNombreChange)
+        CustomField("Número de contacto", store.encargadoContacto, vm::onEncargadoContactoChange)
+        CustomField("Correo electrónico", store.encargadoEmail,    vm::onEncargadoEmailChange)
 
         Spacer(modifier = Modifier.height(30.dp))
 
@@ -288,9 +357,9 @@ private fun AjustesUsuarioContent(
             modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
             shape = RoundedCornerShape(28.dp),
-            enabled = !uiState.isLoading
+            enabled = !store.isLoading
         ) {
-            if (uiState.isLoading) {
+            if (store.isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
                 Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -300,34 +369,7 @@ private fun AjustesUsuarioContent(
 }
 
 @Composable
-private fun PerfilField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String = ""
-) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(label, color = Color.Gray, fontSize = 12.sp)
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { if (placeholder.isNotBlank()) Text(placeholder, color = Color.LightGray) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor   = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor  = Color.Transparent,
-                focusedIndicatorColor   = Color(0xFFD32F2F),
-                unfocusedIndicatorColor = Color.LightGray,
-                cursorColor             = Color(0xFFD32F2F)
-            )
-        )
-    }
-}
-
-@Composable
-private fun ProximamenteContent(titulo: String, descripcion: String) {
+private fun MisResenasTiendaContent() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -336,16 +378,16 @@ private fun ProximamenteContent(titulo: String, descripcion: String) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                Icons.Outlined.Build,
+                Icons.Outlined.Star,
                 contentDescription = null,
                 tint = Color(0xFFD32F2F),
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Reseñas de Qualities", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                descripcion,
+                "Aquí aparecerán las evaluaciones CHAS que los Qualities han hecho de tu huarique.",
                 color = Color.Gray,
                 fontSize = 13.sp,
                 lineHeight = 20.sp,
