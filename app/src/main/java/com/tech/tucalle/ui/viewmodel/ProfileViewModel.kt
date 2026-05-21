@@ -31,8 +31,8 @@ data class ProfileUiState(
     val horaDesde: String = "",
     val horaHasta: String = "",
     val logros: List<String> = emptyList(),
-    // UI
-    val isLoading: Boolean = true,
+    // UI (¡Aquí estaban las variables que faltaban!)
+    val isLoading: Boolean = false,
     val mensajeGuardado: String = ""
 )
 
@@ -129,7 +129,7 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // ── EDICIÓN DE CAMPOS (USUARIO y QUALITY) ────────────────────
+    // ── EDICIÓN DE CAMPOS ────────────────────────────────────────
     fun onNombreChange(v: String)          = _uiState.update { it.copy(nombre = v) }
     fun onApellidosChange(v: String)       = _uiState.update { it.copy(apellidos = v) }
     fun onCelularChange(v: String)         = _uiState.update { it.copy(celular = v) }
@@ -193,7 +193,6 @@ class ProfileViewModel : ViewModel() {
             }
     }
 
-    // ── UTILIDADES ────────────────────────────────────────────────
     fun cerrarSesion(onLogoutSuccess: () -> Unit) {
         auth.signOut()
         onLogoutSuccess()

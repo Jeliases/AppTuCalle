@@ -14,12 +14,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController // NUEVO IMPORT
 import com.tech.tucalle.ui.viewmodel.QualityViewModel
 import com.tech.tucalle.navigation.BottomNavigationBarDynamic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeQualityScreen(
+    navController: NavHostController? = null, // NUEVO PARÁMETRO
     qualityViewModel: QualityViewModel = viewModel()
 ) {
     val uiState by qualityViewModel.uiState.collectAsState()
@@ -29,7 +31,18 @@ fun HomeQualityScreen(
     var expPlatos by remember { mutableStateOf(false) }
 
     Scaffold(
-        bottomBar = { BottomNavigationBarDynamic(rol = "QUALITY", currentSelection = "Reseñas") },
+        bottomBar = {
+            BottomNavigationBarDynamic(
+                rol = "QUALITY",
+                currentSelection = "Reseñas",
+                // ¡AQUÍ LE DAMOS VIDA A LOS BOTONES! 👇
+                onItemClick = { item ->
+                    if (item == "Perfil") {
+                        navController?.navigate("perfil_quality")
+                    }
+                }
+            )
+        },
         containerColor = Color.White
     ) { paddingValues ->
         Column(

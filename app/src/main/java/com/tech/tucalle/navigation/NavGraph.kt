@@ -162,7 +162,7 @@ fun NavGraph(navController: NavHostController) {
 
         // B. HOME QUALITY — pantalla real con CHAS y dropdown
         composable("home_quality") {
-            HomeQualityScreen()
+            HomeQualityScreen(navController = navController)
         }
 
         // C. HOME TIENDA

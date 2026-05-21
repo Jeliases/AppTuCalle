@@ -93,19 +93,6 @@ fun LoginScreen(
             }
 
         }
-        Button(
-            onClick = {
-                statusMessage = "Inyectando datos..." // Mensaje de carga
-                authViewModel.inyectarDatosDePrueba { resultado ->
-                    statusMessage = resultado // Muestra el éxito o el error
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(55.dp).padding(top = 10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000000))
-        ) {
-            Text("Inyectar Datos (Borrar luego)", fontSize = 18.sp, color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(40.dp))
 
         Button(
             onClick = {

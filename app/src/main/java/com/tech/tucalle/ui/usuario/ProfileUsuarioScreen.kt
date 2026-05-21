@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.tech.tucalle.navigation.BottomNavigationBarDynamic
 import com.tech.tucalle.ui.viewmodel.ProfileViewModel
+import com.tech.tucalle.ui.components.BotonCambiarFoto
 
 @Composable
 fun ProfileUsuarioScreen(
@@ -32,50 +33,7 @@ fun ProfileUsuarioScreen(
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf("Ajustes") }
-    var showFotoDialog by remember { mutableStateOf(false) }
-    var nuevaFotoUrl by remember { mutableStateOf("") }
     val scroll = rememberScrollState()
-
-    // Diálogo para cambiar foto (como WhatsApp — pegar URL)
-    if (showFotoDialog) {
-        AlertDialog(
-            onDismissRequest = { showFotoDialog = false },
-            title = { Text("Cambiar foto de perfil", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Text("Pega la URL de tu nueva foto:", color = Color.Gray, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = nuevaFotoUrl,
-                        onValueChange = { nuevaFotoUrl = it },
-                        placeholder = { Text("https://...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFD32F2F)
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (nuevaFotoUrl.isNotBlank()) {
-                            profileViewModel.onFotoUrlChange(nuevaFotoUrl)
-                            profileViewModel.guardarCambios()
-                        }
-                        showFotoDialog = false
-                        nuevaFotoUrl = ""
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-                ) { Text("Guardar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showFotoDialog = false; nuevaFotoUrl = "" }) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
 
     Scaffold(
         containerColor = Color.White,
@@ -102,34 +60,42 @@ fun ProfileUsuarioScreen(
                     .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Foto con botón cámara
-                Box {
-                    AsyncImage(
-                        model = uiState.fotoUrl.ifBlank {
-                            "https://ui-avatars.com/api/?name=${uiState.nombre}+${uiState.apellidos}&background=D32F2F&color=fff&size=100"
-                        },
-                        contentDescription = "Foto de perfil",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color.LightGray),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .align(Alignment.BottomEnd)
-                            .clip(CircleShape)
-                            .background(Color(0xFFD32F2F))
-                            .clickable { showFotoDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Outlined.CameraAlt,
-                            contentDescription = "Cambiar foto",
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                // COMPONENTE GLOBAL CON LA CORRECCIÓN DEL BOX
+                BotonCambiarFoto(
+                    rutaStorage = "fotos_perfil/${uiState.uid}/perfil.jpg",
+                    onFotoSubida = { url ->
+                        profileViewModel.onFotoUrlChange(url)
+                        profileViewModel.guardarCambios()
+                    }
+                ) {
+                    // Envolvemos en un Box para poder usar Alignment.BottomEnd sin errores
+                    Box {
+                        AsyncImage(
+                            model = uiState.fotoUrl.ifBlank {
+                                "https://ui-avatars.com/api/?name=${uiState.nombre}+${uiState.apellidos}&background=D32F2F&color=fff&size=100"
+                            },
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray),
+                            contentScale = ContentScale.Crop
                         )
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .align(Alignment.BottomEnd)
+                                .clip(CircleShape)
+                                .background(Color(0xFFD32F2F)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Outlined.CameraAlt,
+                                contentDescription = "Cambiar foto",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -258,7 +224,6 @@ private fun AjustesUsuarioContent(
         PerfilField("Nombre(s)*", uiState.nombre, vm::onNombreChange)
         PerfilField("Apellido(s)*", uiState.apellidos, vm::onApellidosChange)
 
-        // Correo solo lectura
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             Text("Correo Electrónico*", color = Color.Gray, fontSize = 12.sp)
             TextField(
@@ -277,8 +242,7 @@ private fun AjustesUsuarioContent(
         }
 
         PerfilField("Celular*", uiState.celular, vm::onCelularChange)
-        PerfilField("Fecha de nacimiento*", uiState.fechaNacimiento, vm::onFechaNacimientoChange,
-            placeholder = "DD/MM/AAAA")
+        PerfilField("Fecha de nacimiento*", uiState.fechaNacimiento, vm::onFechaNacimientoChange, placeholder = "DD/MM/AAAA")
         PerfilField("Número de identidad*", uiState.dni, vm::onDniChange)
 
         Spacer(modifier = Modifier.height(30.dp))

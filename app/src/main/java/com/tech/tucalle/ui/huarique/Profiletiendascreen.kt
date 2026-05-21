@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
+import com.tech.tucalle.navigation.BottomNavigationBarDynamic
+import com.tech.tucalle.ui.components.BotonCambiarFoto
 import com.tech.tucalle.ui.viewmodel.ProfileViewModel
 import com.tech.tucalle.ui.viewmodel.StoreViewModel
 
@@ -31,55 +34,19 @@ fun ProfileTiendaScreen(
     profileViewModel: ProfileViewModel = viewModel(),
     storeViewModel: StoreViewModel = viewModel()
 ) {
-    val profile by profileViewModel.uiState.collectAsState()
-    val store   by storeViewModel.uiState.collectAsState()
+    val store by storeViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf("Ajustes") }
-    var showFotoDialog by remember { mutableStateOf(false) }
-    var nuevaFotoUrl by remember { mutableStateOf("") }
     val scroll = rememberScrollState()
-
-    // Diálogo para cambiar foto
-    if (showFotoDialog) {
-        AlertDialog(
-            onDismissRequest = { showFotoDialog = false },
-            title = { Text("Cambiar logo", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Text("Pega la URL de la nueva imagen:", color = Color.Gray, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = nuevaFotoUrl,
-                        onValueChange = { nuevaFotoUrl = it },
-                        placeholder = { Text("https://...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFD32F2F)
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (nuevaFotoUrl.isNotBlank()) {
-                            storeViewModel.onLogoUrlChange(nuevaFotoUrl)
-                            storeViewModel.guardarCambios()
-                        }
-                        showFotoDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-                ) { Text("Guardar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showFotoDialog = false }) { Text("Cancelar") }
-            }
-        )
-    }
 
     Scaffold(
         containerColor = Color.White,
         bottomBar = {
-            StoreBottomNav(selected = "Perfil", onSelect = { if (it == "Home") onBack() })
+            // Corregido: Usamos el BottomNavigationBarDynamic global
+            BottomNavigationBarDynamic(
+                rol = "TIENDA",
+                currentSelection = "Perfil",
+                onItemClick = { item -> if (item == "Home") onBack() }
+            )
         }
     ) { padding ->
         Column(
@@ -97,34 +64,40 @@ fun ProfileTiendaScreen(
                     .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box {
-                    AsyncImage(
-                        model = store.logoUrl.ifBlank {
-                            "https://ui-avatars.com/api/?name=${store.nombreTienda}&background=D32F2F&color=fff&size=100"
-                        },
-                        contentDescription = "Logo tienda",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color.LightGray),
-                        contentScale = ContentScale.Crop
-                    )
-                    // Botón cámara encima de la foto
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .align(Alignment.BottomEnd)
-                            .clip(CircleShape)
-                            .background(Color(0xFFD32F2F))
-                            .clickable { showFotoDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Outlined.CameraAlt,
-                            contentDescription = "Cambiar foto",
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                BotonCambiarFoto(
+                    rutaStorage = "tiendas/${FirebaseAuth.getInstance().currentUser?.uid}/logo.jpg",
+                    onFotoSubida = { url ->
+                        storeViewModel.onLogoUrlChange(url)
+                        storeViewModel.guardarCambios()
+                    }
+                ) {
+                    Box {
+                        AsyncImage(
+                            model = store.logoUrl.ifBlank {
+                                "https://ui-avatars.com/api/?name=${store.nombreTienda}&background=D32F2F&color=fff&size=100"
+                            },
+                            contentDescription = "Logo tienda",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray),
+                            contentScale = ContentScale.Crop
                         )
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .align(Alignment.BottomEnd)
+                                .clip(CircleShape)
+                                .background(Color(0xFFD32F2F)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Outlined.CameraAlt,
+                                contentDescription = "Cambiar foto",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -219,28 +192,20 @@ fun ProfileTiendaScreen(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                         if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .height(2.dp)
-                                    .width(40.dp)
-                                    .background(Color(0xFFD32F2F))
-                            )
+                            Box(modifier = Modifier.height(2.dp).width(40.dp).background(Color(0xFFD32F2F)))
                         }
                     }
                 }
             }
 
             Divider(color = Color(0xFFF0F0F0), modifier = Modifier.padding(top = 8.dp))
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── CONTENIDO TABS ─────────────────────────────────────
             when (selectedTab) {
-                "Ajustes"     -> AjustesTiendaContent(store, storeViewModel)
-                "Mis reseñas" -> MisResenasTiendaContent()
+                "Ajustes"     -> PerfilTiendaAjustesContent(store, storeViewModel)
+                "Mis reseñas" -> PerfilTiendaMisResenasContent()
             }
 
-            // Mensaje guardado
             if (store.mensajeGuardado.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -256,14 +221,11 @@ fun ProfileTiendaScreen(
     }
 }
 
+// Renombradas para evitar choques con otras pantallas (Overload ambiguity)
 @Composable
-private fun AjustesTiendaContent(
-    store: com.tech.tucalle.ui.viewmodel.StoreUiState,
-    vm: StoreViewModel
-) {
+private fun PerfilTiendaAjustesContent(store: com.tech.tucalle.ui.viewmodel.StoreUiState, vm: StoreViewModel) {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
 
-        // Estado abierto/cerrado
         Text("Estado de tu tienda", fontWeight = FontWeight.Bold, fontSize = 15.sp)
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -284,18 +246,13 @@ private fun AjustesTiendaContent(
                         .clickable { vm.cambiarEstado(estado) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        estado,
-                        color = if (isSelected) Color.White else Color.Black,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text(estado, color = if (isSelected) Color.White else Color.Black, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Horario
         Text("Horario", fontWeight = FontWeight.Bold, fontSize = 15.sp)
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -310,10 +267,7 @@ private fun AjustesTiendaContent(
                     placeholder = { Text("08:00 AM") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFD32F2F),
-                        unfocusedBorderColor = Color.LightGray
-                    )
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFFD32F2F), unfocusedBorderColor = Color.LightGray)
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -324,31 +278,26 @@ private fun AjustesTiendaContent(
                     placeholder = { Text("10:00 PM") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFD32F2F),
-                        unfocusedBorderColor = Color.LightGray
-                    )
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFFD32F2F), unfocusedBorderColor = Color.LightGray)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Info de tienda
         Text("Información de tu tienda", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        CustomField("Razón Social",       store.razonSocial,       vm::onRazonSocialChange)
-        CustomField("Nombre de la tienda",store.nombreTienda,      vm::onNombreChange)
-        CustomField("Celular",            store.celular,           vm::onCelularChange)
-        CustomField("WhatsApp",           store.whatsapp,          vm::onWhatsappChange)
-        CustomField("Dirección",          store.direccion,         vm::onDireccionChange)
+        PerfilTiendaCustomField("Razón Social",       store.razonSocial,       vm::onRazonSocialChange)
+        PerfilTiendaCustomField("Nombre de la tienda",store.nombreTienda,      vm::onNombreChange)
+        PerfilTiendaCustomField("Celular",            store.celular,           vm::onCelularChange)
+        PerfilTiendaCustomField("WhatsApp",           store.whatsapp,          vm::onWhatsappChange)
+        PerfilTiendaCustomField("Dirección",          store.direccion,         vm::onDireccionChange)
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Info encargado
         Text("Información de Encargado", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        CustomField("Nombres y Apellidos",store.encargadoNombre,   vm::onEncargadoNombreChange)
-        CustomField("Número de contacto", store.encargadoContacto, vm::onEncargadoContactoChange)
-        CustomField("Correo electrónico", store.encargadoEmail,    vm::onEncargadoEmailChange)
+        PerfilTiendaCustomField("Nombres y Apellidos",store.encargadoNombre,   vm::onEncargadoNombreChange)
+        PerfilTiendaCustomField("Número de contacto", store.encargadoContacto, vm::onEncargadoContactoChange)
+        PerfilTiendaCustomField("Correo electrónico", store.encargadoEmail,    vm::onEncargadoEmailChange)
 
         Spacer(modifier = Modifier.height(30.dp))
 
@@ -369,38 +318,37 @@ private fun AjustesTiendaContent(
 }
 
 @Composable
-private fun MisResenasTiendaContent() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(40.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Outlined.Star,
-                contentDescription = null,
-                tint = Color(0xFFD32F2F),
-                modifier = Modifier.size(48.dp)
+private fun PerfilTiendaCustomField(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(label, color = Color.Gray, fontSize = 12.sp)
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor   = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor  = Color.Transparent,
+                focusedIndicatorColor   = Color(0xFFD32F2F),
+                unfocusedIndicatorColor = Color.LightGray,
+                cursorColor             = Color(0xFFD32F2F)
             )
+        )
+    }
+}
+
+@Composable
+private fun PerfilTiendaMisResenasContent() {
+    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Outlined.Star, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text("Reseñas de Qualities", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Aquí aparecerán las evaluaciones CHAS que los Qualities han hecho de tu huarique.",
-                color = Color.Gray,
-                fontSize = 13.sp,
-                lineHeight = 20.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+            Text("Aquí aparecerán las evaluaciones CHAS que los Qualities han hecho de tu huarique.", color = Color.Gray, fontSize = 13.sp, lineHeight = 20.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                "PRÓXIMAMENTE",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.LightGray,
-                letterSpacing = 2.sp
-            )
+            Text("PRÓXIMAMENTE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.LightGray, letterSpacing = 2.sp)
         }
     }
 }
