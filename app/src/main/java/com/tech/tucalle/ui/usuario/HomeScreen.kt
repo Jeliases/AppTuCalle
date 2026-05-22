@@ -2,8 +2,6 @@ package com.tech.tucalle.ui.usuario
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.net.http.SslCertificate.restoreState
-import android.net.http.SslCertificate.saveState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -34,60 +32,53 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
-import com.tech.tucalle.data.PlatoDTO
-import com.tech.tucalle.navigation.BottomNavItem
 
 // Componentes y ViewModels
 import com.tech.tucalle.ui.components.*
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import com.tech.tucalle.ui.viewmodel.HomeViewModel
-
-
+import com.tech.tucalle.navigation.BottomNavigationBarDynamic
 
 @Composable
 fun HomeScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel(),
+    rol: String = "USUARIO", // 🔴 Recibe el rol dinámico (Puede ser QUALITY)
     onRestaurantClick: (String) -> Unit = {}
 ) {
-    // Recolección de estados dinámicos
     val direccionReal by homeViewModel.direccionActual.collectAsState()
     val context = LocalContext.current
     val bannersReales by homeViewModel.banners.collectAsState()
     val tiendasReales by homeViewModel.tiendasCercanas.collectAsState()
     val platosReales by homeViewModel.platosPopulares.collectAsState()
 
-    // Launcher para solicitar el permiso de ubicación al sistema
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        if (isGranted) {
-            // El usuario aceptó: ahora sí podemos pedir la ubicación real
-            homeViewModel.obtenerUbicacionReal(context)
-        }
-        // Si denegó, el ViewModel mantiene "Detectando ubicación..." o el fallback que tengas
+        if (isGranted) homeViewModel.obtenerUbicacionReal(context)
     }
 
-    // Efecto para activar el GPS apenas cargue la pantalla
     LaunchedEffect(Unit) {
         val permiso = Manifest.permission.ACCESS_FINE_LOCATION
         if (ContextCompat.checkSelfPermission(context, permiso) == PackageManager.PERMISSION_GRANTED) {
-            // Ya tenemos permiso → llamamos directo al ViewModel
             homeViewModel.obtenerUbicacionReal(context)
         } else {
-            // No hay permiso → lanzamos el diálogo del sistema
             permissionLauncher.launch(permiso)
         }
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController) },
+        // 🔴 Utilizamos la barra de navegación Global y pasamos el NavController
+        bottomBar = {
+            BottomNavigationBarDynamic(
+                rol = rol,
+                currentSelection = "Home",
+                navController = navController
+            )
+        },
         containerColor = Color.White
     ) { paddingValues ->
         LazyColumn(
@@ -95,23 +86,17 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-
-            // SECCIÓN 1: CABECERA DINÁMICA Y ACCIÓN
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    // direccionReal viene del GPS a través del StateFlow del ViewModel
                     TopLocationBar(direccion = direccionReal)
-
                     Spacer(modifier = Modifier.height(10.dp))
-
                     Button(
-                        onClick = { authViewModel.inyectarDatosDePrueba { /* Inyección */ } },
+                        onClick = { authViewModel.inyectarDatosDePrueba { } },
                         modifier = Modifier.fillMaxWidth().height(40.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                     ) {
                         Text("Cargar Huariques Reales", color = Color.White, fontSize = 12.sp)
                     }
-
                     Spacer(modifier = Modifier.height(20.dp))
 
                     if (bannersReales.isNotEmpty()) {
@@ -119,19 +104,16 @@ fun HomeScreen(
                     } else {
                         Box(modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(16.dp)).background(Color.LightGray))
                     }
-
                     Spacer(modifier = Modifier.height(24.dp))
                     CategoriesRow()
                     Spacer(modifier = Modifier.height(30.dp))
                 }
             }
 
-            // SECCIÓN 2: POPULARES AHORA (Platos con Precios Formateados)
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
                     SectionHeader(title = "Populares ahora")
                     Spacer(modifier = Modifier.height(12.dp))
-
                     LazyRow {
                         items(platosReales) { plato ->
                             val porcentaje = if (plato.precioOriginal > 0) {
@@ -153,12 +135,10 @@ fun HomeScreen(
                 }
             }
 
-            // SECCIÓN 3: HUARIQUES RECOMENDADOS (Ordenados por Rating real)
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
                     SectionHeader(title = "Huariques recomendados")
                     Spacer(modifier = Modifier.height(12.dp))
-
                     LazyRow {
                         items(tiendasReales) { tienda ->
                             RestaurantCard(
@@ -176,12 +156,10 @@ fun HomeScreen(
                 }
             }
 
-            // SECCIÓN 4: LOS MÁS RECOMENDADOS (Logos de Firebase)
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
                     Text("Los más recomendados", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-
                     LazyRow {
                         items(tiendasReales.take(6)) { tienda ->
                             RecommendedLogo(imageUrl = tienda.portadaUrl)
@@ -191,12 +169,10 @@ fun HomeScreen(
                 }
             }
 
-            // SECCIÓN 5: PORQUE LO BUENO SE REPITE
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
                     Text("Porque lo bueno se repite", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-
                     LazyRow {
                         items(tiendasReales.reversed().take(3)) { tienda ->
                             RepeatCard(
@@ -212,8 +188,6 @@ fun HomeScreen(
         }
     }
 }
-
-// --- COMPONENTES UI (No se ha borrado nada) ---
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -251,7 +225,6 @@ fun TopLocationBar(direccion: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFD32F2F))
             Spacer(modifier = Modifier.width(8.dp))
-            // Este texto cambiará solo según el distrito donde estés parado
             Text(text = direccion, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
         }
         IconButton(onClick = { }) {
@@ -285,42 +258,4 @@ fun SearchBarUI() {
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE0E0E0), focusedBorderColor = Color(0xFFD32F2F))
     )
-}
-
-@Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Ofertas,
-        BottomNavItem.Pedidos,
-        BottomNavItem.Favoritos,
-        BottomNavItem.Perfil
-    )
-
-    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.title) },
-                label = { Text(item.title, fontSize = 10.sp) },
-                selected = currentRoute == item.route,
-                onClick = {
-                    navController.navigate(item.route) {
-                        // Evita acumular pantallas infinitas
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFFD32F2F),
-                    selectedTextColor = Color(0xFFD32F2F)
-                )
-            )
-        }
-    }
 }

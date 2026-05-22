@@ -9,28 +9,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 data class StoreUiState(
-    // Identidad visual
     val nombreTienda: String = "",
     val logoUrl: String = "",
     val portadaUrl: String = "",
-    // Info negocio
     val razonSocial: String = "",
     val celular: String = "",
     val whatsapp: String = "",
     val direccion: String = "",
-    // Encargado
+    val latitud: Double = 0.0,
+    val longitud: Double = 0.0,
     val encargadoNombre: String = "",
     val encargadoContacto: String = "",
     val encargadoEmail: String = "",
-    // Estado y horario
     val estadoLocal: String = "Cerrado",
     val horarioApertura: String = "",
     val horarioCierre: String = "",
-    // Métricas (solo lectura)
+    val diasApertura: List<String> = emptyList(),
     val plan: String = "Impulso",
     val seguidores: Int = 0,
     val totalResenas: Int = 0,
-    // UI
     val isLoading: Boolean = false,
     val mensajeGuardado: String = ""
 )
@@ -43,33 +40,29 @@ class StoreViewModel : ViewModel() {
 
     init { cargarDatos() }
 
-    // ── CAMBIOS DE CAMPO ──────────────────────────────────────────
     fun onNombreChange(v: String)           = _uiState.update { it.copy(nombreTienda = v) }
     fun onRazonSocialChange(v: String)      = _uiState.update { it.copy(razonSocial = v) }
     fun onCelularChange(v: String)          = _uiState.update { it.copy(celular = v) }
     fun onWhatsappChange(v: String)         = _uiState.update { it.copy(whatsapp = v) }
-    fun onDireccionChange(v: String)        = _uiState.update { it.copy(direccion = v) }
+    fun onUbicacionChange(dir: String, lat: Double, lng: Double) = _uiState.update { it.copy(direccion = dir, latitud = lat, longitud = lng) }
     fun onEncargadoNombreChange(v: String)  = _uiState.update { it.copy(encargadoNombre = v) }
     fun onEncargadoContactoChange(v: String)= _uiState.update { it.copy(encargadoContacto = v) }
     fun onEncargadoEmailChange(v: String)   = _uiState.update { it.copy(encargadoEmail = v) }
     fun onHorarioAperturaChange(v: String)  = _uiState.update { it.copy(horarioApertura = v) }
     fun onHorarioCierreChange(v: String)    = _uiState.update { it.copy(horarioCierre = v) }
     fun onLogoUrlChange(v: String)          = _uiState.update { it.copy(logoUrl = v) }
+    fun onDiasAperturaChange(v: List<String>) = _uiState.update { it.copy(diasApertura = v) }
 
-    // ── CARGA DE DATOS ────────────────────────────────────────────
     private fun cargarDatos() {
         val uid = auth.currentUser?.uid ?: return
         db.collection("tiendas").document(uid).addSnapshotListener { snap, _ ->
             snap?.let { doc ->
-                // Blindaje: direccion puede ser String o Map (compatibilidad)
-                val direccionTexto = try {
-                    doc.getString("direccion") ?: ""
-                } catch (e: Exception) {
-                    val mapa = doc.get("direccion") as? Map<*, *>
-                    mapa?.get("texto")?.toString() ?: ""
-                }
+                val mapa = doc.get("direccion") as? Map<*, *>
+                val direccionTexto = mapa?.get("texto")?.toString() ?: doc.getString("direccion") ?: ""
+                val lat = (mapa?.get("latitud") as? Number)?.toDouble() ?: 0.0
+                val lng = (mapa?.get("longitud") as? Number)?.toDouble() ?: 0.0
+                val diasList = (doc.get("diasApertura") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
-                // Horario: puede venir como "10:00 AM – 11:00 PM" o separado
                 val horarioCompleto = doc.getString("horario") ?: ""
                 val partes = horarioCompleto.split("–", "-").map { it.trim() }
                 val apertura = partes.getOrNull(0) ?: ""
@@ -82,6 +75,9 @@ class StoreViewModel : ViewModel() {
                         celular           = doc.getString("celular") ?: "",
                         whatsapp          = doc.getString("whatsapp") ?: "",
                         direccion         = direccionTexto,
+                        latitud           = lat,
+                        longitud          = lng,
+                        diasApertura      = diasList,
                         encargadoNombre   = doc.getString("encargadoNombre") ?: "",
                         encargadoContacto = doc.getString("encargadoContacto") ?: "",
                         encargadoEmail    = doc.getString("encargadoEmail") ?: "",
@@ -99,19 +95,18 @@ class StoreViewModel : ViewModel() {
         }
     }
 
-    // ── GUARDAR ───────────────────────────────────────────────────
     fun guardarCambios() {
         val uid = auth.currentUser?.uid ?: return
         val s = _uiState.value
-        val horarioTexto = if (s.horarioApertura.isNotBlank() && s.horarioCierre.isNotBlank())
-            "${s.horarioApertura} – ${s.horarioCierre}" else ""
+        val horarioTexto = if (s.horarioApertura.isNotBlank() && s.horarioCierre.isNotBlank()) "${s.horarioApertura} – ${s.horarioCierre}" else ""
 
         val data = mapOf(
             "nombre"            to s.nombreTienda,
             "razonSocial"       to s.razonSocial,
             "celular"           to s.celular,
             "whatsapp"          to s.whatsapp,
-            "direccion"         to s.direccion,
+            "direccion"         to mapOf("texto" to s.direccion, "latitud" to s.latitud, "longitud" to s.longitud),
+            "diasApertura"      to s.diasApertura,
             "encargadoNombre"   to s.encargadoNombre,
             "encargadoContacto" to s.encargadoContacto,
             "encargadoEmail"    to s.encargadoEmail,
@@ -120,17 +115,17 @@ class StoreViewModel : ViewModel() {
         )
         _uiState.update { it.copy(isLoading = true) }
         db.collection("tiendas").document(uid).update(data)
-            .addOnSuccessListener {
-                _uiState.update { it.copy(isLoading = false, mensajeGuardado = "✅ Cambios guardados") }
-            }
-            .addOnFailureListener { e ->
-                _uiState.update { it.copy(isLoading = false, mensajeGuardado = "❌ Error: ${e.message}") }
-            }
+            .addOnSuccessListener { _uiState.update { it.copy(isLoading = false, mensajeGuardado = "✅ Cambios guardados") } }
+            .addOnFailureListener { e -> _uiState.update { it.copy(isLoading = false, mensajeGuardado = "❌ Error: ${e.message}") } }
     }
 
     fun cambiarEstado(nuevoEstado: String) {
         val uid = auth.currentUser?.uid ?: return
         _uiState.update { it.copy(estadoLocal = nuevoEstado) }
         db.collection("tiendas").document(uid).update("estadoLocal", nuevoEstado)
+    }
+    fun cerrarSesion(onLogoutSuccess: () -> Unit) {
+        auth.signOut()
+        onLogoutSuccess()
     }
 }

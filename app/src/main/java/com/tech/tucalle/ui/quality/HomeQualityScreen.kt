@@ -14,14 +14,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController // NUEVO IMPORT
+import androidx.navigation.NavHostController
 import com.tech.tucalle.ui.viewmodel.QualityViewModel
 import com.tech.tucalle.navigation.BottomNavigationBarDynamic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeQualityScreen(
-    navController: NavHostController? = null, // NUEVO PARÁMETRO
+    navController: NavHostController, // 🔴 Agregado
     qualityViewModel: QualityViewModel = viewModel()
 ) {
     val uiState by qualityViewModel.uiState.collectAsState()
@@ -34,13 +34,8 @@ fun HomeQualityScreen(
         bottomBar = {
             BottomNavigationBarDynamic(
                 rol = "QUALITY",
-                currentSelection = "Reseñas",
-                // ¡AQUÍ LE DAMOS VIDA A LOS BOTONES! 👇
-                onItemClick = { item ->
-                    if (item == "Perfil") {
-                        navController?.navigate("perfil_quality")
-                    }
-                }
+                currentSelection = "Reseñas", // Mantiene su botón iluminado
+                navController = navController // 🔴 Pasamos el controlador
             )
         },
         containerColor = Color.White

@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import android.net.Uri
+import com.google.firebase.storage.FirebaseStorage
 
 data class ProfileUiState(
     val uid: String = "",
@@ -17,6 +19,7 @@ data class ProfileUiState(
     val correo: String = "",
     val celular: String = "",
     val fechaNacimiento: String = "",
+    val tipoDocumento: String = "DNI",
     val dni: String = "",
     val descripcion: String = "",
     // Stats
@@ -31,7 +34,7 @@ data class ProfileUiState(
     val horaDesde: String = "",
     val horaHasta: String = "",
     val logros: List<String> = emptyList(),
-    // UI (¡Aquí estaban las variables que faltaban!)
+    // UI
     val isLoading: Boolean = false,
     val mensajeGuardado: String = ""
 )
@@ -39,18 +42,17 @@ data class ProfileUiState(
 class ProfileViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init { cargarPerfilGlobal() }
 
-    // ── DETECTAR ROL Y CARGAR PERFIL ─────────────────────────────
     private fun cargarPerfilGlobal() {
         val currentUser = auth.currentUser ?: return
         val uid = currentUser.uid
 
-        // Cascada: qualities → usuarios → tiendas
         db.collection("qualities").document(uid).get().addOnSuccessListener { docQ ->
             if (docQ.exists()) {
                 _uiState.update {
@@ -63,24 +65,22 @@ class ProfileViewModel : ViewModel() {
                         fotoUrl       = docQ.getString("fotoUrl") ?: "",
                         descripcion   = docQ.getString("descripcion") ?: "",
                         fechaNacimiento = docQ.getString("fechaNacimiento") ?: "",
+                        tipoDocumento = docQ.getString("tipoDocumento") ?: "DNI",
                         dni           = docQ.getString("dni") ?: "",
                         rol           = "QUALITY",
                         seguidores    = docQ.getLong("seguidores")?.toInt() ?: 0,
                         totalResenas  = docQ.getLong("totalReseñas")?.toInt() ?: 0,
                         antiguedad    = docQ.getLong("antiguedad") ?: 0L,
-                        diasDisponibles = (docQ.get("diasDisponibles") as? List<*>)
-                            ?.filterIsInstance<String>() ?: emptyList(),
+                        diasDisponibles = (docQ.get("diasDisponibles") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                         horaDesde     = docQ.getString("horaDisponibleDesde") ?: "",
                         horaHasta     = docQ.getString("horaDisponibleHasta") ?: "",
-                        logros        = (docQ.get("logros") as? List<*>)
-                            ?.filterIsInstance<String>() ?: emptyList(),
+                        logros        = (docQ.get("logros") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                         isLoading     = false
                     )
                 }
                 return@addOnSuccessListener
             }
 
-            // No es Quality → buscar en usuarios
             db.collection("usuarios").document(uid).get().addOnSuccessListener { docU ->
                 if (docU.exists()) {
                     _uiState.update {
@@ -92,20 +92,19 @@ class ProfileViewModel : ViewModel() {
                             celular         = docU.getString("celular") ?: "",
                             fotoUrl         = docU.getString("fotoUrl") ?: "",
                             fechaNacimiento = docU.getString("fechaNacimiento") ?: "",
+                            tipoDocumento   = docU.getString("tipoDocumento") ?: "DNI",
                             dni             = docU.getString("dni") ?: "",
                             rol             = "USUARIO",
                             totalResenas    = docU.getLong("totalReseñas")?.toInt() ?: 0,
                             totalHuariques  = docU.getLong("totalHuariques")?.toInt() ?: 0,
                             antiguedad      = docU.getLong("antiguedad") ?: 0L,
-                            logros          = (docU.get("logros") as? List<*>)
-                                ?.filterIsInstance<String>() ?: emptyList(),
+                            logros          = (docU.get("logros") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                             isLoading       = false
                         )
                     }
                     return@addOnSuccessListener
                 }
 
-                // No es Usuario → buscar en tiendas
                 db.collection("tiendas").document(uid).get().addOnSuccessListener { docT ->
                     if (docT.exists()) {
                         _uiState.update {
@@ -129,24 +128,18 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // ── EDICIÓN DE CAMPOS ────────────────────────────────────────
     fun onNombreChange(v: String)          = _uiState.update { it.copy(nombre = v) }
     fun onApellidosChange(v: String)       = _uiState.update { it.copy(apellidos = v) }
     fun onCelularChange(v: String)         = _uiState.update { it.copy(celular = v) }
     fun onFechaNacimientoChange(v: String) = _uiState.update { it.copy(fechaNacimiento = v) }
+    fun onTipoDocumentoChange(v: String)   = _uiState.update { it.copy(tipoDocumento = v) }
     fun onDniChange(v: String)             = _uiState.update { it.copy(dni = v) }
     fun onDescripcionChange(v: String)     = _uiState.update { it.copy(descripcion = v) }
     fun onFotoUrlChange(v: String)         = _uiState.update { it.copy(fotoUrl = v) }
     fun onHoraDesdeChange(v: String)       = _uiState.update { it.copy(horaDesde = v) }
     fun onHoraHastaChange(v: String)       = _uiState.update { it.copy(horaHasta = v) }
+    fun onDiasChange(v: List<String>)      = _uiState.update { it.copy(diasDisponibles = v) }
 
-    fun onDiaToggle(dia: String) {
-        val actuales = _uiState.value.diasDisponibles.toMutableList()
-        if (actuales.contains(dia)) actuales.remove(dia) else actuales.add(dia)
-        _uiState.update { it.copy(diasDisponibles = actuales) }
-    }
-
-    // ── GUARDAR CAMBIOS SEGÚN ROL ─────────────────────────────────
     fun guardarCambios() {
         val uid = auth.currentUser?.uid ?: return
         val s = _uiState.value
@@ -167,7 +160,10 @@ class ProfileViewModel : ViewModel() {
                 "descripcion"          to s.descripcion,
                 "diasDisponibles"      to s.diasDisponibles,
                 "horaDisponibleDesde"  to s.horaDesde,
-                "horaDisponibleHasta"  to s.horaHasta
+                "horaDisponibleHasta"  to s.horaHasta,
+                "fechaNacimiento"      to s.fechaNacimiento,
+                "tipoDocumento"        to s.tipoDocumento,
+                "dni"                  to s.dni
             )
             "TIENDA" -> mapOf(
                 "nombre"  to s.nombre,
@@ -180,17 +176,14 @@ class ProfileViewModel : ViewModel() {
                 "celular"         to s.celular,
                 "fotoUrl"         to s.fotoUrl,
                 "fechaNacimiento" to s.fechaNacimiento,
+                "tipoDocumento"   to s.tipoDocumento,
                 "dni"             to s.dni
             )
         }
 
         db.collection(coleccion).document(uid).update(data)
-            .addOnSuccessListener {
-                _uiState.update { it.copy(isLoading = false, mensajeGuardado = "✅ Cambios guardados") }
-            }
-            .addOnFailureListener { e ->
-                _uiState.update { it.copy(isLoading = false, mensajeGuardado = "❌ Error: ${e.message}") }
-            }
+            .addOnSuccessListener { _uiState.update { it.copy(isLoading = false, mensajeGuardado = "✅ Cambios guardados") } }
+            .addOnFailureListener { e -> _uiState.update { it.copy(isLoading = false, mensajeGuardado = "❌ Error: ${e.message}") } }
     }
 
     fun cerrarSesion(onLogoutSuccess: () -> Unit) {

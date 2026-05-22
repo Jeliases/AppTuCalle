@@ -16,13 +16,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
-// Pantallas Auth (NO TOCAR)
+// Pantallas Auth
 import com.tech.tucalle.ui.auth.*
 
 // Pantallas Usuario
@@ -77,7 +78,7 @@ fun NavGraph(navController: NavHostController) {
                 onLoginSuccess = { rol ->
                     val destino = when (rol) {
                         "TIENDA"  -> "home_tienda"
-                        "QUALITY" -> "home_quality"
+                        "QUALITY" -> "home_quality_main" // 🔴 Nuevo Home del Quality
                         "ADMIN"   -> "home_admin"
                         else      -> "home_user"
                     }
@@ -128,7 +129,7 @@ fun NavGraph(navController: NavHostController) {
                 tipo = tipo,
                 onBack = { navController.popBackStack() },
                 onRegisterSuccess = {
-                    val destino = if (tipo == "QUALITY") "home_quality" else "home_user"
+                    val destino = if (tipo == "QUALITY") "home_quality_main" else "home_user"
                     navController.navigate(destino) {
                         popUpTo("auth") { inclusive = true }
                     }
@@ -154,13 +155,26 @@ fun NavGraph(navController: NavHostController) {
             HomeScreen(
                 navController = navController,
                 authViewModel = authViewModel,
+                rol = "USUARIO",
                 onRestaurantClick = { idTienda ->
                     navController.navigate("mural_tienda/$idTienda")
                 }
             )
         }
 
-        // B. HOME QUALITY — pantalla real con CHAS y dropdown
+        // B1. HOME QUALITY (Explorar huariques)
+        composable("home_quality_main") {
+            HomeScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                rol = "QUALITY", // 🔴 Reutilizamos el HomeScreen pero en modo Quality
+                onRestaurantClick = { idTienda ->
+                    navController.navigate("mural_tienda/$idTienda")
+                }
+            )
+        }
+
+        // B2. EVALUACIÓN QUALITY (La pantalla CHAS)
         composable("home_quality") {
             HomeQualityScreen(navController = navController)
         }
@@ -178,57 +192,56 @@ fun NavGraph(navController: NavHostController) {
             PlaceholderHome(
                 rol = "ADMIN",
                 titulo = "Panel Administrativo / TI",
-                subtitulo = "Sala de aprobaciones pendientes para nuevos platos y validación de comercios."
+                subtitulo = "Sala de aprobaciones pendientes para nuevos platos y validación de comercios.",
+                navController = navController
             )
         }
 
-        // ── PERFILES ──────────────────────────────────────────────
+        // E. PANTALLA "EN CONSTRUCCIÓN" (Para evitar crashes)
+        composable(
+            route = "en_construccion/{rol}",
+            arguments = listOf(navArgument("rol") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val rol = backStackEntry.arguments?.getString("rol") ?: "USUARIO"
+            PlaceholderHome(
+                rol = rol,
+                titulo = "Próximamente",
+                subtitulo = "Esta sección estará disponible en futuras actualizaciones.",
+                navController = navController
+            )
+        }
 
-        // Perfil Usuario (ruta desde navbar del HomeScreen)
+// ── PERFILES ──────────────────────────────────────────────
+
         composable("perfil_usuario") {
             ProfileUsuarioScreen(
+                navController = navController,
                 onBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate("auth") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                onLogout = { navController.navigate("auth") { popUpTo(0) { inclusive = true } } }
             )
         }
 
-        // Perfil Quality
         composable("perfil_quality") {
             ProfileQualityScreen(
+                navController = navController,
                 onBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate("auth") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                onLogout = { navController.navigate("auth") { popUpTo(0) { inclusive = true } } }
             )
         }
 
-        // Perfil Tienda (abierto desde navbar de StoreHomeScreen)
         composable("perfil_tienda") {
             ProfileTiendaScreen(
+                navController = navController,
                 onBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate("auth") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                onLogout = { navController.navigate("auth") { popUpTo(0) { inclusive = true } } }
             )
         }
 
-        // Ruta legacy "perfil" → redirige al perfil de usuario
         composable("perfil") {
             ProfileUsuarioScreen(
+                navController = navController,
                 onBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate("auth") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                onLogout = { navController.navigate("auth") { popUpTo(0) { inclusive = true } } }
             )
         }
 
@@ -243,41 +256,30 @@ fun NavGraph(navController: NavHostController) {
     }
 }
 
-// ── NAVBAR DINÁMICO (Quality y Admin siguen usándolo) ─────────────
+// ── NAVBAR DINÁMICO MEJORADO ─────────────────────────────────────────
 @Composable
 fun BottomNavigationBarDynamic(
     rol: String,
     currentSelection: String = "",
+    navController: NavHostController? = null,
     onItemClick: (String) -> Unit = {}
 ) {
     val (items, icons) = when (rol) {
         "QUALITY" -> Pair(
             listOf("Home", "Reseñas", "Huariques", "Favoritos", "Perfil"),
-            listOf(
-                Icons.Outlined.Home,
-                Icons.Outlined.Star,
-                Icons.Outlined.LocationOn,
-                Icons.Outlined.FavoriteBorder,
-                Icons.Outlined.Person
-            )
+            listOf(Icons.Outlined.Home, Icons.Outlined.Star, Icons.Outlined.LocationOn, Icons.Outlined.FavoriteBorder, Icons.Outlined.Person)
         )
         "ADMIN" -> Pair(
             listOf("Aprobaciones", "Reportes", "Perfil"),
-            listOf(
-                Icons.Outlined.CheckCircle,
-                Icons.Outlined.Warning,
-                Icons.Outlined.Person
-            )
+            listOf(Icons.Outlined.CheckCircle, Icons.Outlined.Warning, Icons.Outlined.Person)
+        )
+        "TIENDA" -> Pair(
+            listOf("Home", "Platos", "Reseñas", "Métricas", "Perfil"),
+            listOf(Icons.Outlined.Home, Icons.Outlined.MenuBook, Icons.Outlined.Star, Icons.Outlined.BarChart, Icons.Outlined.Person)
         )
         else -> Pair(
             listOf("Home", "Ofertas", "Pedidos", "Favoritos", "Perfil"),
-            listOf(
-                Icons.Outlined.Home,
-                Icons.Outlined.Star,
-                Icons.Outlined.ShoppingCart,
-                Icons.Outlined.FavoriteBorder,
-                Icons.Outlined.Person
-            )
+            listOf(Icons.Outlined.Home, Icons.Outlined.Star, Icons.Outlined.ShoppingCart, Icons.Outlined.FavoriteBorder, Icons.Outlined.Person)
         )
     }
 
@@ -288,7 +290,34 @@ fun BottomNavigationBarDynamic(
                 icon = { Icon(icons[index], contentDescription = item) },
                 label = { Text(item, fontSize = 10.sp) },
                 selected = isSelected,
-                onClick = { onItemClick(item) },
+                onClick = {
+                    if (!isSelected) { // 🔴 ESTO EVITA LA PANTALLA BLANCA POR CLICS REPETIDOS
+                        if (navController != null) {
+                            val ruta = when (item) {
+                                "Home" -> when(rol) {
+                                    "QUALITY" -> "home_quality_main"
+                                    "TIENDA" -> "home_tienda"
+                                    "ADMIN" -> "home_admin"
+                                    else -> "home_user"
+                                }
+                                "Reseñas" -> if (rol == "QUALITY") "home_quality" else "en_construccion/$rol"
+                                "Perfil" -> when (rol) {
+                                    "QUALITY" -> "perfil_quality"
+                                    "TIENDA" -> "perfil_tienda"
+                                    else -> "perfil_usuario"
+                                }
+                                else -> "en_construccion/$rol" // Todo lo demás va al Placeholder
+                            }
+                            navController.navigate(ruta) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            onItemClick(item) // Fallback si no se pasa navController
+                        }
+                    }
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor   = Color(0xFFD32F2F),
                     selectedTextColor   = Color(0xFFD32F2F),
@@ -303,9 +332,9 @@ fun BottomNavigationBarDynamic(
 
 // ── PLACEHOLDER HOME ──────────────────────────────────────────────
 @Composable
-fun PlaceholderHome(rol: String, titulo: String, subtitulo: String) {
+fun PlaceholderHome(rol: String, titulo: String, subtitulo: String, navController: NavHostController? = null) {
     Scaffold(
-        bottomBar = { BottomNavigationBarDynamic(rol = rol) },
+        bottomBar = { BottomNavigationBarDynamic(rol = rol, navController = navController) },
         containerColor = Color.White
     ) { paddingValues ->
         Column(
@@ -354,13 +383,4 @@ fun MuralTiendaBlancoScreen(idTienda: String) {
             lineHeight = 24.sp
         )
     }
-}
-
-// ── BOTTOM NAV ITEMS (para HomeScreen usuario) ────────────────────
-sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
-    object Home      : BottomNavItem("home_user",      "Home",      Icons.Outlined.Home)
-    object Ofertas   : BottomNavItem("ofertas",        "Ofertas",   Icons.Outlined.Star)
-    object Pedidos   : BottomNavItem("pedidos",        "Pedidos",   Icons.Outlined.ShoppingCart)
-    object Favoritos : BottomNavItem("favoritos",      "Favoritos", Icons.Outlined.FavoriteBorder)
-    object Perfil    : BottomNavItem("perfil_usuario", "Perfil",    Icons.Outlined.Person)
 }
