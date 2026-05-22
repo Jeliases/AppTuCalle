@@ -95,7 +95,7 @@ fun VerifyCodeScreen(email: String, onBack: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
             shape = RoundedCornerShape(30.dp)
         ) {
-            Text("Regresar al Login", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Volver al Inicio", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(20.dp))

@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -234,17 +235,22 @@ fun TopLocationBar(direccion: String) {
 }
 
 @Composable
-fun CategoriesRow() {
-    val categorias = listOf("Broaster", "Caldos", "Parrilla", "Ensaladas")
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        categorias.forEach { cat ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(modifier = Modifier.size(60.dp).clip(CircleShape).background(Color(0xFFFFF0F0)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.ShoppingCart, contentDescription = null, tint = Color(0xFFD32F2F))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = cat, fontSize = 12.sp, color = Color.DarkGray)
-            }
+fun HeaderSection() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(text = "Hola,", fontSize = 16.sp, color = Color.Gray)
+            Text(text = "Jorge", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        }
+
+        IconButton(
+            onClick = { /* Acción notificaciones */ },
+            modifier = Modifier.clip(CircleShape).background(Color(0xFFFFF0F0))
+        ) {
+            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Color(0xFFD32F2F))
         }
     }
 }
@@ -252,10 +258,62 @@ fun CategoriesRow() {
 @Composable
 fun SearchBarUI() {
     var query by remember { mutableStateOf("") }
+
     OutlinedTextField(
-        value = query, onValueChange = { query = it }, placeholder = { Text("Buscar huariques...") },
+        value = query,
+        onValueChange = { query = it },
+        placeholder = { Text("¿Qué se te antoja hoy?", color = Color.Gray) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE0E0E0), focusedBorderColor = Color(0xFFD32F2F))
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = Color(0xFFE0E0E0),
+            focusedBorderColor = Color(0xFFD32F2F),
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color(0xFFF9F9F9)
+        )
     )
+}
+
+@Composable
+fun CategoriesRow() {
+    val categorias = listOf(
+        Pair("Broaster", Icons.Outlined.SetMeal),
+        Pair("Caldos", Icons.Outlined.SoupKitchen),
+        Pair("Parrilla", Icons.Outlined.RoomService),
+        Pair("Ensaladas", Icons.Outlined.Eco)
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        categorias.forEach { (cat, icon) ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { /* Acción de filtro aquí */ }
+                    .padding(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(55.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFF0F0)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = cat,
+                        tint = Color(0xFFD32F2F),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = cat, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.DarkGray)
+            }
+        }
+    }
 }
