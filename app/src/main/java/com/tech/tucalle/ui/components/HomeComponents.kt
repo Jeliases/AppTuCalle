@@ -1,14 +1,24 @@
 package com.tech.tucalle.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.RoomService
+import androidx.compose.material.icons.outlined.SetMeal
+import androidx.compose.material.icons.outlined.SoupKitchen
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -185,6 +195,7 @@ fun RestaurantCard(
         }
     }
 }
+
 // ---------------------------------------------------------
 // LOGO CIRCULAR (Para "Los más recomendados")
 // ---------------------------------------------------------
@@ -196,6 +207,7 @@ fun RecommendedLogo(imageUrl: String, onClick: () -> Unit = {}) {
             .size(70.dp)
             .clip(CircleShape)
             .background(Color.LightGray)
+            .clickable { onClick() }
     ) {
         AsyncImage(
             model = imageUrl,
@@ -215,7 +227,8 @@ fun RepeatCard(imageUrl: String, title: String, onClick: () -> Unit = {}) {
         modifier = Modifier
             .width(280.dp)
             .height(200.dp)
-            .padding(end = 16.dp),
+            .padding(end = 16.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -229,6 +242,121 @@ fun RepeatCard(imageUrl: String, title: String, onClick: () -> Unit = {}) {
             )
             Box(modifier = Modifier.fillMaxWidth().weight(0.4f).padding(12.dp)) {
                 Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPOSABLES COMPARTIDOS (usados en HomeScreen y HomeQualityScreen)
+// ═══════════════════════════════════════════════════════════════
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun PromoCarousel(banners: List<String>) {
+    val pagerState = rememberPagerState(pageCount = { banners.size })
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(16.dp))
+        ) { page ->
+            AsyncImage(
+                model = banners[page],
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.Center) {
+            repeat(banners.size) { iteration ->
+                val color = if (pagerState.currentPage == iteration) Color(0xFFD32F2F) else Color.LightGray
+                Box(modifier = Modifier.padding(2.dp).clip(CircleShape).background(color).size(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun TopLocationBar(direccion: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = Color(0xFFD32F2F)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = direccion, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        }
+        IconButton(onClick = { }) {
+            Icon(
+                Icons.Default.Notifications,
+                contentDescription = null,
+                tint = Color(0xFFD32F2F)
+            )
+        }
+    }
+}
+
+@Composable
+fun SearchBarUI() {
+    var query by remember { mutableStateOf("") }
+    OutlinedTextField(
+        value = query,
+        onValueChange = { query = it },
+        placeholder = { Text("Buscar huariques, platos...", color = Color.Gray) },
+        leadingIcon = {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = null,
+                tint = Color.Gray
+            )
+        },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = Color(0xFFE0E0E0),
+            focusedBorderColor = Color(0xFFD32F2F),
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color(0xFFF9F9F9)
+        )
+    )
+}
+
+@Composable
+fun CategoriesRow() {
+    val categorias = listOf(
+        Pair("Broaster", Icons.Outlined.SetMeal),
+        Pair("Caldos",   Icons.Outlined.SoupKitchen),
+        Pair("Parrilla", Icons.Outlined.RoomService),
+        Pair("Ensaladas",Icons.Outlined.Eco)
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        categorias.forEach { (cat, icon) ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { }
+                    .padding(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(55.dp).clip(CircleShape).background(Color(0xFFFFF0F0)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = icon, contentDescription = cat, tint = Color(0xFFD32F2F), modifier = Modifier.size(28.dp))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = cat, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.DarkGray)
             }
         }
     }

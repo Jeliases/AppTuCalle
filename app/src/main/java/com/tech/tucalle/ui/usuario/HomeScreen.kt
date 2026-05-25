@@ -4,22 +4,15 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +34,7 @@ import com.tech.tucalle.ui.components.*
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import com.tech.tucalle.ui.viewmodel.HomeViewModel
 import com.tech.tucalle.navigation.BottomNavigationBarDynamic
+import com.tech.tucalle.ui.theme.Roboto
 
 @Composable
 fun HomeScreen(
@@ -90,14 +84,6 @@ fun HomeScreen(
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                     TopLocationBar(direccion = direccionReal)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        onClick = { authViewModel.inyectarDatosDePrueba { } },
-                        modifier = Modifier.fillMaxWidth().height(40.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
-                    ) {
-                        Text("Cargar Huariques Reales", color = Color.White, fontSize = 12.sp)
-                    }
                     Spacer(modifier = Modifier.height(20.dp))
 
                     if (bannersReales.isNotEmpty()) {
@@ -107,7 +93,17 @@ fun HomeScreen(
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     CategoriesRow()
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
+                    Text(
+                        text = "¿Qué se te antoja hoy?",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Roboto,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SearchBarUI()
+                    Spacer(modifier = Modifier.height(28.dp))
                 }
             }
 
@@ -185,134 +181,6 @@ fun HomeScreen(
                     }
                     Spacer(modifier = Modifier.height(100.dp))
                 }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun PromoCarousel(banners: List<String>) {
-    val pagerState = rememberPagerState(pageCount = { banners.size })
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(16.dp))
-        ) { page ->
-            AsyncImage(
-                model = banners[page],
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.Center) {
-            repeat(banners.size) { iteration ->
-                val color = if (pagerState.currentPage == iteration) Color(0xFFD32F2F) else Color.LightGray
-                Box(modifier = Modifier.padding(2.dp).clip(CircleShape).background(color).size(8.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun TopLocationBar(direccion: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFD32F2F))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = direccion, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-        }
-        IconButton(onClick = { }) {
-            Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFFD32F2F))
-        }
-    }
-}
-
-@Composable
-fun HeaderSection() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(text = "Hola,", fontSize = 16.sp, color = Color.Gray)
-            Text(text = "Jorge", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-        }
-
-        IconButton(
-            onClick = { /* Acción notificaciones */ },
-            modifier = Modifier.clip(CircleShape).background(Color(0xFFFFF0F0))
-        ) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Color(0xFFD32F2F))
-        }
-    }
-}
-
-@Composable
-fun SearchBarUI() {
-    var query by remember { mutableStateOf("") }
-
-    OutlinedTextField(
-        value = query,
-        onValueChange = { query = it },
-        placeholder = { Text("¿Qué se te antoja hoy?", color = Color.Gray) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Color(0xFFE0E0E0),
-            focusedBorderColor = Color(0xFFD32F2F),
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color(0xFFF9F9F9)
-        )
-    )
-}
-
-@Composable
-fun CategoriesRow() {
-    val categorias = listOf(
-        Pair("Broaster", Icons.Outlined.SetMeal),
-        Pair("Caldos", Icons.Outlined.SoupKitchen),
-        Pair("Parrilla", Icons.Outlined.RoomService),
-        Pair("Ensaladas", Icons.Outlined.Eco)
-    )
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        categorias.forEach { (cat, icon) ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { /* Acción de filtro aquí */ }
-                    .padding(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(55.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFF0F0)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = cat,
-                        tint = Color(0xFFD32F2F),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = cat, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.DarkGray)
             }
         }
     }

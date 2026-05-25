@@ -1,7 +1,6 @@
 package com.tech.tucalle.ui.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -53,7 +52,6 @@ fun RegisterStoreScreen(
 
     var statusMessage by remember { mutableStateOf("") }
     var aceptoTerminos by remember { mutableStateOf(false) }
-    var aceptoPromociones by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -124,7 +122,6 @@ fun RegisterStoreScreen(
             }
         }
 
-        // NUEVO: Selector de Días
         Spacer(modifier = Modifier.height(20.dp))
         Text(text = "Días de apertura*", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
         Spacer(modifier = Modifier.height(12.dp))
@@ -176,14 +173,35 @@ fun RegisterStoreScreen(
                     direccionTexto.isNotEmpty() && horaInicio.isNotEmpty() && horaFin.isNotEmpty() && diasSeleccionados.isNotEmpty()) {
 
                     val horarioFinal = "$horaInicio - $horaFin"
+
+                    // 🔥 MAPA DE DATOS COMPLETO (Estructura definitiva para Firestore)
                     val storeData = mapOf(
                         "nombre" to nombreLocal,
                         "email" to email,
                         "celular" to celular,
-                        "diasApertura" to diasSeleccionados.toList(), // Guardamos la lista de días
+                        "diasApertura" to diasSeleccionados.toList(),
                         "horario" to horarioFinal,
                         "rol" to "TIENDA",
-                        "direccion" to mapOf("texto" to direccionTexto, "latitud" to latitudSeleccionada, "longitud" to longitudSeleccionada)
+                        "direccion" to mapOf(
+                            "texto" to direccionTexto,
+                            "latitud" to latitudSeleccionada,
+                            "longitud" to longitudSeleccionada
+                        ),
+                        // 🔥 Valores por defecto OBLIGATORIOS para evitar crashes visuales
+                        "razonSocial" to nombreLocal,
+                        "whatsapp" to celular,
+                        "encargadoNombre" to "",
+                        "encargadoContacto" to celular,
+                        "encargadoEmail" to email,
+                        "portadaUrl" to "",
+                        "logoUrl" to "",
+                        "calificacionGeneral" to 0.0,
+                        "totalReseñas" to 0,
+                        "seguidores" to 0,
+                        "etiquetas" to listOf("Nuevo", "Huarique"),
+                        "estado" to "APROBADO",
+                        "estadoLocal" to "Abierto",
+                        "plan" to "Gratis"
                     )
 
                     authViewModel.registerUserWithRole(
@@ -206,18 +224,18 @@ fun RegisterStoreScreen(
     }
 }
 
-// Función auxiliar para formatear hora a 12h (AM/PM)
-fun formatTime12h(hour: Int, minute: Int): String {
+// 🔥 LA SOLUCIÓN AL ERROR ESTÁ AQUÍ (Agregamos 'private')
+private fun formatTime12h(hour: Int, minute: Int): String {
     val amPm = if (hour >= 12) "PM" else "AM"
     var hour12 = hour % 12
     if (hour12 == 0) hour12 = 12
     return String.format(java.util.Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm)
 }
 
+// 🔥 Y AQUÍ (Agregamos 'private')
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomTimePickerDialog(onDismissRequest: () -> Unit, onConfirm: (Int, Int) -> Unit) {
-    // is24Hour = false para que muestre el selector AM/PM
+private fun CustomTimePickerDialog(onDismissRequest: () -> Unit, onConfirm: (Int, Int) -> Unit) {
     val state = rememberTimePickerState(is24Hour = false)
 
     Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = true)) {

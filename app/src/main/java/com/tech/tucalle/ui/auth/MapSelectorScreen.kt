@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -81,7 +82,6 @@ fun MapSelectorScreen(
         }
     }
 
-    // Función para buscar por texto (La barra de búsqueda)
     fun searchLocationFromText(query: String) {
         if (query.isEmpty()) return
         coroutineScope.launch(Dispatchers.IO) {
@@ -134,7 +134,11 @@ fun MapSelectorScreen(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
-            uiSettings = MapUiSettings(myLocationButtonEnabled = true, zoomControlsEnabled = false)
+            uiSettings = MapUiSettings(myLocationButtonEnabled = true, zoomControlsEnabled = false),
+            // 🔥 MODIFICACIÓN AQUÍ: Se inyecta el Map ID recién creado
+            googleMapOptionsFactory = {
+                GoogleMapOptions().mapId("500f9cc7e1a79fd05e9402e0")
+            }
         )
 
         Icon(
@@ -144,14 +148,12 @@ fun MapSelectorScreen(
             modifier = Modifier.size(48.dp).align(Alignment.Center).offset(y = (-24).dp)
         )
 
-        // TARJETA SUPERIOR: Buscador y Dirección Actual
         Card(
             modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.TopCenter),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Buscador
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -169,7 +171,6 @@ fun MapSelectorScreen(
                     )
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                // Dirección detectada
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -178,7 +179,6 @@ fun MapSelectorScreen(
             }
         }
 
-        // BOTONES INFERIORES
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.BottomCenter)) {
             Button(
                 onClick = { onLocationSelected(textAddress, currentLatLng.latitude, currentLatLng.longitude) },

@@ -1,189 +1,213 @@
 package com.tech.tucalle.ui.quality
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.tech.tucalle.ui.viewmodel.QualityViewModel
 import com.tech.tucalle.navigation.BottomNavigationBarDynamic
+import com.tech.tucalle.ui.components.*
+import com.tech.tucalle.ui.theme.Roboto
+import com.tech.tucalle.ui.viewmodel.HomeViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeQualityScreen(
-    navController: NavHostController, // 🔴 Agregado
-    qualityViewModel: QualityViewModel = viewModel()
+    navController: NavHostController,
+    homeViewModel: HomeViewModel = viewModel(),
+    onRestaurantClick: (String) -> Unit = {}
 ) {
-    val uiState by qualityViewModel.uiState.collectAsState()
-    val scrollState = rememberScrollState()
+    val direccionReal by homeViewModel.direccionActual.collectAsState()
+    val context = LocalContext.current
+    val bannersReales by homeViewModel.banners.collectAsState()
+    val tiendasReales by homeViewModel.tiendasCercanas.collectAsState()
+    val platosReales by homeViewModel.platosPopulares.collectAsState()
 
-    var expTiendas by remember { mutableStateOf(false) }
-    var expPlatos by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) homeViewModel.obtenerUbicacionReal(context)
+    }
+
+    LaunchedEffect(Unit) {
+        val permiso = Manifest.permission.ACCESS_FINE_LOCATION
+        if (ContextCompat.checkSelfPermission(context, permiso) == PackageManager.PERMISSION_GRANTED) {
+            homeViewModel.obtenerUbicacionReal(context)
+        } else {
+            permissionLauncher.launch(permiso)
+        }
+    }
 
     Scaffold(
+        containerColor = Color.White,
         bottomBar = {
             BottomNavigationBarDynamic(
                 rol = "QUALITY",
-                currentSelection = "Reseñas", // Mantiene su botón iluminado
-                navController = navController // 🔴 Pasamos el controlador
+                currentSelection = "Home",
+                navController = navController
             )
         },
-        containerColor = Color.White
+        // FAB para abrir el formulario CHAS
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate("nueva_evaluacion") },
+                containerColor = Color(0xFFD32F2F),
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Nueva evaluación CHAS")
+            }
+        }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp)
-                .verticalScroll(scrollState)
         ) {
-            Text(text = "Nueva Evaluación", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text(text = "Método CHAS", color = Color.Gray, fontSize = 16.sp)
+            // ── SECCIÓN 1: CABECERA ──────────────────────────────
+            item {
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    TopLocationBar(direccion = direccionReal)
+                    Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            if (uiState.mensajeExito.isNotEmpty()) {
-                Text(
-                    text = uiState.mensajeExito,
-                    color = if(uiState.mensajeExito.contains("éxito")) Color(0xFF4CAF50) else Color.Red,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
-            // 1. DROPDOWN DE TIENDAS
-            Text("Selecciona el Huarique a evaluar", fontWeight = FontWeight.SemiBold)
-            ExposedDropdownMenuBox(
-                expanded = expTiendas,
-                onExpandedChange = { expTiendas = it },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            ) {
-                OutlinedTextField(
-                    value = uiState.tiendaSeleccionada?.nombre ?: "Elige una tienda...",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expTiendas) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFFD32F2F))
-                )
-                ExposedDropdownMenu(expanded = expTiendas, onDismissRequest = { expTiendas = false }) {
-                    uiState.tiendasDisponibles.forEach { tienda ->
-                        DropdownMenuItem(
-                            text = { Text(tienda.nombre) },
-                            onClick = {
-                                qualityViewModel.seleccionarTienda(tienda)
-                                expTiendas = false
-                            }
+                    if (bannersReales.isNotEmpty()) {
+                        PromoCarousel(banners = bannersReales.map { it.imageUrl })
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.LightGray)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    CategoriesRow()
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    // Título con Roboto Bold — igual que HomeScreen usuario
+                    Text(
+                        text = "¿Qué se te antoja hoy?",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Roboto,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SearchBarUI()
+                    Spacer(modifier = Modifier.height(28.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 2. DROPDOWN MÚLTIPLE DE PLATOS SUGERIDOS
-            if (uiState.tiendaSeleccionada != null) {
-                Text("Platos Sugeridos (Puedes elegir varios)", fontWeight = FontWeight.SemiBold)
-                ExposedDropdownMenuBox(
-                    expanded = expPlatos,
-                    onExpandedChange = { expPlatos = it },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                ) {
-                    val platosText = if (uiState.platosSeleccionadosIds.isEmpty()) "Selecciona platos..."
-                    else "${uiState.platosSeleccionadosIds.size} platos seleccionados"
-                    OutlinedTextField(
-                        value = platosText,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expPlatos) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFFD32F2F))
-                    )
-                    ExposedDropdownMenu(expanded = expPlatos, onDismissRequest = { expPlatos = false }) {
-                        uiState.platosDeTienda.forEach { plato ->
-                            val isSelected = uiState.platosSeleccionadosIds.contains(plato.id)
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = isSelected, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = Color(0xFFD32F2F)))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(plato.nombre)
-                                    }
-                                },
-                                onClick = { qualityViewModel.togglePlato(plato.id) }
+            // ── SECCIÓN 2: POPULARES AHORA ───────────────────────
+            item {
+                Column(modifier = Modifier.padding(start = 20.dp)) {
+                    SectionHeader(title = "Populares ahora")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyRow {
+                        items(platosReales) { plato ->
+                            val porcentaje = if (plato.precioOriginal > 0) {
+                                ((1 - (plato.precioDescuento / plato.precioOriginal)) * 100).toInt()
+                            } else 0
+                            DishCard(
+                                nombre = plato.nombre,
+                                restaurante = plato.nombreTienda.ifBlank { "Huarique" },
+                                calificacion = "%.1f".format(plato.calificacionPlato),
+                                precioOriginal = "S/ ${"%.2f".format(plato.precioOriginal)}",
+                                precioDescuento = "S/ ${"%.2f".format(plato.precioDescuento)}",
+                                descuentoTag = "-$porcentaje%",
+                                imagenUrl = plato.imagenUrl
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 3. SLIDERS DEL MÉTODO CHAS
-                Text("Evaluación CHAS (0 a 5 estrellas)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                ChasSlider("Confort (Ambiente, asientos)", uiState.confort) { v -> qualityViewModel.onChasChange(v, uiState.higiene, uiState.atencion, uiState.sabrosura) }
-                ChasSlider("Higiene (Limpieza general)", uiState.higiene) { v -> qualityViewModel.onChasChange(uiState.confort, v, uiState.atencion, uiState.sabrosura) }
-                ChasSlider("Atención (Rapidez, amabilidad)", uiState.atencion) { v -> qualityViewModel.onChasChange(uiState.confort, uiState.higiene, v, uiState.sabrosura) }
-                ChasSlider("Sabrosura (Sabor, presentación)", uiState.sabrosura) { v -> qualityViewModel.onChasChange(uiState.confort, uiState.higiene, uiState.atencion, v) }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 4. COMENTARIO GENERAL
-                OutlinedTextField(
-                    value = uiState.comentario,
-                    onValueChange = { qualityViewModel.onComentarioChange(it) },
-                    label = { Text("Escribe tu reseña detallada...") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    maxLines = 4,
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFFD32F2F))
-                )
-
-                Spacer(modifier = Modifier.height(30.dp))
-
-                // 5. BOTÓN ENVIAR
-                Button(
-                    onClick = { qualityViewModel.enviarRecomendacion() },
-                    modifier = Modifier.fillMaxWidth().height(55.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-                    shape = RoundedCornerShape(30.dp),
-                    enabled = !uiState.isLoading
-                ) {
-                    if (uiState.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                    else Text("Publicar Recomendación", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            // ── SECCIÓN 3: HUARIQUES RECOMENDADOS ───────────────
+            item {
+                Column(modifier = Modifier.padding(start = 20.dp)) {
+                    SectionHeader(title = "Huariques recomendados")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyRow {
+                        items(tiendasReales) { tienda ->
+                            RestaurantCard(
+                                nombre = tienda.nombre,
+                                distrito = tienda.obtenerDistrito(),
+                                horario = tienda.horario,
+                                calificacion = "%.1f".format(tienda.calificacionGeneral),
+                                etiquetas = tienda.etiquetas,
+                                portadaUrl = tienda.portadaUrl,
+                                onClick = { onRestaurantClick(tienda.id) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
+            }
 
-                Spacer(modifier = Modifier.height(40.dp))
+            // ── SECCIÓN 4: LOS MÁS RECOMENDADOS ─────────────────
+            item {
+                Column(modifier = Modifier.padding(start = 20.dp)) {
+                    Text(
+                        "Los más recomendados",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Roboto
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyRow {
+                        items(tiendasReales.take(6)) { tienda ->
+                            RecommendedLogo(imageUrl = tienda.portadaUrl)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(30.dp))
+                }
+            }
+
+            // ── SECCIÓN 5: PORQUE LO BUENO SE REPITE ────────────
+            item {
+                Column(modifier = Modifier.padding(start = 20.dp)) {
+                    Text(
+                        "Porque lo bueno se repite",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Roboto
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyRow {
+                        items(tiendasReales.reversed().take(3)) { tienda ->
+                            RepeatCard(
+                                imageUrl = tienda.portadaUrl,
+                                title = tienda.nombre,
+                                onClick = { onRestaurantClick(tienda.id) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
             }
         }
-    }
-}
-
-@Composable
-fun ChasSlider(label: String, value: Double, onValueChange: (Double) -> Unit) {
-    Column(modifier = Modifier.padding(bottom = 12.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, fontSize = 14.sp, color = Color.DarkGray)
-            Text(String.format("%.1f ★", value), fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
-        }
-        Slider(
-            value = value.toFloat(),
-            onValueChange = { onValueChange(it.toDouble()) },
-            valueRange = 0f..5f,
-            steps = 9,
-            colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFD32F2F),
-                activeTrackColor = Color(0xFFD32F2F)
-            )
-        )
     }
 }

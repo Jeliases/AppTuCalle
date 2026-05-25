@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "117716463919-qtejm9t0abvb1lkv146uq773o4jc12cc.apps.googleusercontent.com",
+          "client_id": "117716463919-2hc4u70m789v448ks1lkf7h34hj29vrs.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.tech.tucalle",
-            "certificate_hash": "e29946d14041ff57911ba529cf921c09d2cd1bc7"
+            "certificate_hash": "bf9262f3a0407d244aa8f18b136c6ca74388f85d"
           }
         },
         {
