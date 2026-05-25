@@ -1,6 +1,11 @@
 package com.tech.tucalle.ui.auth
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
@@ -17,13 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterStoreScreen(
@@ -31,6 +40,8 @@ fun RegisterStoreScreen(
     onNavigateToStoreDashboard: () -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
     var nombreLocal by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -52,6 +63,20 @@ fun RegisterStoreScreen(
 
     var statusMessage by remember { mutableStateOf("") }
     var aceptoTerminos by remember { mutableStateOf(false) }
+    var isUploading by remember { mutableStateOf(false) } // 🔥 Bloquea el botón mientras sube
+
+    // 🔥 ESTADOS PARA LAS IMÁGENES
+    var logoUri by remember { mutableStateOf<Uri?>(null) }
+    var portadaUri by remember { mutableStateOf<Uri?>(null) }
+
+    // 🔥 LANZADORES DE LA GALERÍA
+    val logoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> logoUri = uri }
+
+    val portadaPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> portadaUri = uri }
 
     val scrollState = rememberScrollState()
 
@@ -101,6 +126,71 @@ fun RegisterStoreScreen(
 
         if (statusMessage.isNotEmpty()) {
             Text(text = statusMessage, color = if (statusMessage.contains("éxito")) Color(0xFF4CAF50) else Color.Red, fontSize = 14.sp, modifier = Modifier.padding(vertical = 10.dp))
+        }
+
+        // 🔥 HEADER TIPO FACEBOOK (Portada y Logo)
+        Box(
+            modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = 10.dp)
+        ) {
+            // PORTADA RECTANGULAR
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .clickable {
+                        portadaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                if (portadaUri != null) {
+                    AsyncImage(
+                        model = portadaUri,
+                        contentDescription = "Portada",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = "Add", tint = Color.Gray, modifier = Modifier.size(40.dp))
+                            Text("Añadir Portada", color = Color.Gray, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+
+            // LOGO CIRCULAR SUPERPUESTO
+            Box(
+                modifier = Modifier
+                    .size(110.dp)
+                    .align(Alignment.BottomCenter)
+                    .offset(y = 10.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(4.dp, Color.White, CircleShape) // Borde blanco tipo FB
+                    .clickable {
+                        logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (logoUri != null) {
+                    AsyncImage(
+                        model = logoUri,
+                        contentDescription = "Logo",
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(Color(0xFFEEEEEE)), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = "Add", tint = Color.Gray, modifier = Modifier.size(24.dp))
+                            Text("Logo", color = Color.Gray, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -172,59 +262,52 @@ fun RegisterStoreScreen(
                 if (email.isNotEmpty() && password.isNotEmpty() && nombreLocal.isNotEmpty() &&
                     direccionTexto.isNotEmpty() && horaInicio.isNotEmpty() && horaFin.isNotEmpty() && diasSeleccionados.isNotEmpty()) {
 
-                    val horarioFinal = "$horaInicio - $horaFin"
+                    coroutineScope.launch {
+                        isUploading = true
+                        statusMessage = "Subiendo fotos, espera un momento..."
 
-                    // 🔥 MAPA DE DATOS COMPLETO (Estructura definitiva para Firestore)
-                    val storeData = mapOf(
-                        "nombre" to nombreLocal,
-                        "email" to email,
-                        "celular" to celular,
-                        "diasApertura" to diasSeleccionados.toList(),
-                        "horario" to horarioFinal,
-                        "rol" to "TIENDA",
-                        "direccion" to mapOf(
-                            "texto" to direccionTexto,
-                            "latitud" to latitudSeleccionada,
-                            "longitud" to longitudSeleccionada
-                        ),
-                        // 🔥 Valores por defecto OBLIGATORIOS para evitar crashes visuales
-                        "razonSocial" to nombreLocal,
-                        "whatsapp" to celular,
-                        "encargadoNombre" to "",
-                        "encargadoContacto" to celular,
-                        "encargadoEmail" to email,
-                        "portadaUrl" to "",
-                        "logoUrl" to "",
-                        "calificacionGeneral" to 0.0,
-                        "totalReseñas" to 0,
-                        "seguidores" to 0,
-                        "etiquetas" to listOf("Nuevo", "Huarique"),
-                        "estado" to "APROBADO",
-                        "estadoLocal" to "Abierto",
-                        "plan" to "Gratis"
-                    )
+                        val logoUrl = if (logoUri != null) authViewModel.uploadImageSuspend(logoUri!!) else ""
+                        val portadaUrl = if (portadaUri != null) authViewModel.uploadImageSuspend(portadaUri!!) else ""
+                        val horarioFinal = "$horaInicio - $horaFin"
 
-                    authViewModel.registerUserWithRole(
-                        email = email, pass = password, userData = storeData,
-                        onSuccess = { onNavigateToStoreDashboard() },
-                        onFailure = { statusMessage = it }
-                    )
+                        val storeData = mapOf(
+                            "nombre" to nombreLocal,
+                            "email" to email,
+                            "celular" to celular,
+                            "diasApertura" to diasSeleccionados.toList(),
+                            "horario" to horarioFinal,
+                            "rol" to "TIENDA",
+                            "direccion" to mapOf("texto" to direccionTexto, "latitud" to latitudSeleccionada, "longitud" to longitudSeleccionada),
+                            "portadaUrl" to portadaUrl,
+                            "logoUrl" to logoUrl,
+                            "estado" to "APROBADO"
+                        )
+
+                        authViewModel.registerUserWithRole(
+                            email = email, pass = password, userData = storeData,
+                            onSuccess = { isUploading = false; onNavigateToStoreDashboard() },
+                            onFailure = { isUploading = false; statusMessage = it }
+                        )
+                    }
                 } else {
-                    statusMessage = "Por favor, llena todos los campos y selecciona al menos un día."
+                    statusMessage = "Por favor, llena todos los campos."
                 }
             },
-            enabled = aceptoTerminos,
+            enabled = aceptoTerminos && !isUploading,
             modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
             shape = RoundedCornerShape(30.dp)
         ) {
-            Text("Registrarse", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            if (isUploading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text("Registrarse", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
         }
         Spacer(modifier = Modifier.height(30.dp))
     }
 }
-
-// 🔥 LA SOLUCIÓN AL ERROR ESTÁ AQUÍ (Agregamos 'private')
+// 🔥 SE MANTIENE INTACTO
 private fun formatTime12h(hour: Int, minute: Int): String {
     val amPm = if (hour >= 12) "PM" else "AM"
     var hour12 = hour % 12
@@ -232,7 +315,7 @@ private fun formatTime12h(hour: Int, minute: Int): String {
     return String.format(java.util.Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm)
 }
 
-// 🔥 Y AQUÍ (Agregamos 'private')
+// 🔥 SE MANTIENE INTACTO
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomTimePickerDialog(onDismissRequest: () -> Unit, onConfirm: (Int, Int) -> Unit) {

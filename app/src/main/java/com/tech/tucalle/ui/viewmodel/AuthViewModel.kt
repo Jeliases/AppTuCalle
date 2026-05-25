@@ -4,6 +4,11 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import android.net.Uri
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class AuthViewModel : ViewModel() {
     private val auth = Firebase.auth
@@ -148,7 +153,36 @@ class AuthViewModel : ViewModel() {
             }
             .addOnFailureListener { onSuccess("USUARIO") }
     }
+    fun uploadImageToStorage(uri: Uri, fileName: String, onSuccess: (String) -> Unit) {
+        val storageRef = FirebaseStorage.getInstance().reference
+            .child("imagenes_tiendas/${System.currentTimeMillis()}_$fileName.jpg")
 
+        viewModelScope.launch {
+            try {
+                // 1. Subir la imagen
+                storageRef.putFile(uri).await()
+
+                // 2. Obtener la URL de descarga
+                val downloadUrl = storageRef.downloadUrl.await().toString()
+
+                // 3. Devolver la URL para que la guardes en Firestore
+                onSuccess(downloadUrl)
+            } catch (e: Exception) {
+                // Manejar error de subida
+            }
+        }
+    }
+
+    suspend fun uploadImageSuspend(uri: Uri): String {
+        return try {
+            val storageRef = FirebaseStorage.getInstance().reference
+                .child("imagenes_tiendas/${System.currentTimeMillis()}.jpg")
+            storageRef.putFile(uri).await()
+            storageRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            "" // Si falla, devuelve vacío
+        }
+    }
     // ==========================================
     // 4. UTILIDADES DE SESIÓN
     // ==========================================
