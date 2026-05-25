@@ -94,13 +94,14 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     CategoriesRow()
                     Spacer(modifier = Modifier.height(28.dp))
+
+                    // 🔥 SE APLICA TIPOGRAFÍA ROBOTO AL TÍTULO GRANDE
                     Text(
                         text = "¿Qué se te antoja hoy?",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = Roboto,
+                        style = MaterialTheme.typography.headlineMedium,
                         color = Color.Black
                     )
+
                     Spacer(modifier = Modifier.height(12.dp))
                     SearchBarUI()
                     Spacer(modifier = Modifier.height(28.dp))
@@ -155,7 +156,11 @@ fun HomeScreen(
 
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Text("Los más recomendados", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    // 🔥 SE APLICA TIPOGRAFÍA ROBOTO
+                    Text(
+                        text = "Los más recomendados",
+                        style = MaterialTheme.typography.titleLarge
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyRow {
                         items(tiendasReales.take(6)) { tienda ->
@@ -168,7 +173,11 @@ fun HomeScreen(
 
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Text("Porque lo bueno se repite", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    // 🔥 SE APLICA TIPOGRAFÍA ROBOTO
+                    Text(
+                        text = "Porque lo bueno se repite",
+                        style = MaterialTheme.typography.titleLarge
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyRow {
                         items(tiendasReales.reversed().take(3)) { tienda ->

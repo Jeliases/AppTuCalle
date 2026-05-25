@@ -33,6 +33,7 @@ import com.tech.tucalle.ui.viewmodel.ProfileViewModel
 import com.tech.tucalle.ui.viewmodel.StoreUiState
 import com.tech.tucalle.ui.viewmodel.StoreViewModel
 import androidx.navigation.NavHostController
+import com.tech.tucalle.ui.theme.Roboto // 🔥 Importamos Roboto para inyectarlo sin romper tu diseño
 
 @Composable
 fun ProfileTiendaScreen(
@@ -208,10 +209,10 @@ fun ProfileTiendaScreen(
                             fontSize = 13.sp
                         )
 
+                        // 🔥 SE APLICA TIPOGRAFÍA ROBOTO AL NOMBRE
                         Text(
                             text = store.nombreTienda.ifBlank { "Cargando..." },
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.headlineMedium
                         )
 
                         Text(
@@ -478,8 +479,10 @@ private fun PerfilTiendaAjustesContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
+            // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
             Text(
                 "Estado de tu tienda",
+                fontFamily = Roboto,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp
             )
@@ -551,8 +554,10 @@ private fun PerfilTiendaAjustesContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
         Text(
             "Horario de apertura",
+            fontFamily = Roboto,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp
         )
@@ -591,8 +596,10 @@ private fun PerfilTiendaAjustesContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
         Text(
             "Información de tu tienda",
+            fontFamily = Roboto,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp
         )
@@ -605,8 +612,10 @@ private fun PerfilTiendaAjustesContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
         Text(
             "Información de Encargado",
+            fontFamily = Roboto,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp
         )
@@ -647,8 +656,10 @@ private fun PerfilTiendaAjustesContent(
 
                 } else {
 
+                    // 🔥 SE INYECTA ROBOTO PARA EL BOTÓN (Al igual que en Register)
                     Text(
                         "Guardar cambios",
+                        fontFamily = Roboto,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -682,10 +693,10 @@ private fun PerfilTiendaMisResenasContent() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            //  SE APLICA TIPOGRAFÍA ROBOTO PARA TÍTULOS VACÍOS
             Text(
-                "Reseñas de Qualities",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+                text = "Reseñas de Qualities",
+                style = MaterialTheme.typography.titleLarge
             )
 
             Spacer(modifier = Modifier.height(8.dp))

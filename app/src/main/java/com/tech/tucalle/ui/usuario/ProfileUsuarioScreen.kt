@@ -1,6 +1,5 @@
 package com.tech.tucalle.ui.usuario
 
-import androidx.navigation.NavHostController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,10 +21,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.tech.tucalle.navigation.BottomNavigationBarDynamic
 import com.tech.tucalle.ui.components.*
 import com.tech.tucalle.ui.viewmodel.ProfileViewModel
+import com.tech.tucalle.ui.theme.Roboto // 🔥 Roboto global
 
 @Composable
 fun ProfileUsuarioScreen(
@@ -68,11 +69,14 @@ fun ProfileUsuarioScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text("Mi perfil", color = Color.Gray, fontSize = 13.sp)
-                        Text("${uiState.nombre} ${uiState.apellidos}".trim().ifBlank { "Cargando..." }, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        // 🔥 ROBOTO PARA EL NOMBRE
+                        Text(
+                            text = "${uiState.nombre} ${uiState.apellidos}".trim().ifBlank { "Cargando..." },
+                            style = MaterialTheme.typography.headlineMedium
+                        )
                         Text("Usuario", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
-                // BOTÓN CERRAR SESIÓN
                 IconButton(onClick = { profileViewModel.cerrarSesion { onLogout() } }) {
                     Icon(Icons.Outlined.ExitToApp, contentDescription = "Cerrar sesión", tint = Color(0xFFD32F2F))
                 }
@@ -124,7 +128,8 @@ fun ProfileUsuarioScreen(
 @Composable
 private fun StatItem(valor: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(valor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        // 🔥 ESTILO GLOBALES PARA ESTADÍSTICAS
+        Text(valor, style = MaterialTheme.typography.titleLarge)
         Text(label, color = Color.Gray, fontSize = 11.sp)
     }
 }
@@ -134,7 +139,8 @@ private fun AjustesUsuarioContent(uiState: com.tech.tucalle.ui.viewmodel.Profile
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Información de tu cuenta", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            // 🔥 ROBOTO
+            Text("Información de tu cuenta", fontFamily = Roboto, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             IconButton(onClick = onToggleEdit) {
                 Icon(imageVector = if (isEditing) Icons.Outlined.LockOpen else Icons.Outlined.Lock, contentDescription = "Alternar edición", tint = Color(0xFFD32F2F))
             }
@@ -158,7 +164,7 @@ private fun AjustesUsuarioContent(uiState: com.tech.tucalle.ui.viewmodel.Profile
                 enabled = !uiState.isLoading
             ) {
                 if (uiState.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                else Text("Guardar cambios", fontFamily = Roboto, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
@@ -170,7 +176,8 @@ private fun ProximamenteContent(titulo: String, descripcion: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Outlined.Build, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+            Text(titulo, style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(8.dp))
             Text(descripcion, color = Color.Gray, fontSize = 13.sp, lineHeight = 20.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Spacer(modifier = Modifier.height(12.dp))
