@@ -42,34 +42,39 @@ fun RegisterStoreScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
+    // 1. VARIABLES DE TEXTO DE LA INTERFAZ
     var nombreLocal by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var celular by remember { mutableStateOf("") }
 
-    var direccionTexto by remember { mutableStateOf("") }
+    // 🔥 NUEVA VARIABLE PARA LAS ETIQUETAS PERSONALIZADAS
+    var etiquetasInput by remember { mutableStateOf("") }
+
+    // 2. VARIABLES DE UBICACIÓN DESDE EL MAPA
+    var direccionTexto by remember { mutableStateOf("No seleccionada") }
     var latitudSeleccionada by remember { mutableDoubleStateOf(0.0) }
     var longitudSeleccionada by remember { mutableDoubleStateOf(0.0) }
     var showMapSelector by remember { mutableStateOf(false) }
 
+    // 3. VARIABLES DE HORARIO DESDE EL RELOJ
     var horaInicio by remember { mutableStateOf("") }
     var horaFin by remember { mutableStateOf("") }
     var showInicioDialog by remember { mutableStateOf(false) }
     var showFinDialog by remember { mutableStateOf(false) }
 
-    // Estado para Días de la Semana
+    // 4. DÍAS DE LA SEMANA
     val diasSemana = listOf("L", "M", "X", "J", "V", "S", "D")
     var diasSeleccionados by remember { mutableStateOf(setOf<String>()) }
 
+    // 5. CONTROL DE FLUJO E IMÁGENES
     var statusMessage by remember { mutableStateOf("") }
     var aceptoTerminos by remember { mutableStateOf(false) }
-    var isUploading by remember { mutableStateOf(false) } // 🔥 Bloquea el botón mientras sube
+    var isUploading by remember { mutableStateOf(false) }
 
-    // 🔥 ESTADOS PARA LAS IMÁGENES
     var logoUri by remember { mutableStateOf<Uri?>(null) }
     var portadaUri by remember { mutableStateOf<Uri?>(null) }
 
-    // 🔥 LANZADORES DE LA GALERÍA
     val logoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> logoUri = uri }
@@ -128,29 +133,16 @@ fun RegisterStoreScreen(
             Text(text = statusMessage, color = if (statusMessage.contains("éxito")) Color(0xFF4CAF50) else Color.Red, fontSize = 14.sp, modifier = Modifier.padding(vertical = 10.dp))
         }
 
-        // 🔥 HEADER TIPO FACEBOOK (Portada y Logo)
-        Box(
-            modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = 10.dp)
-        ) {
-            // PORTADA RECTANGULAR
+        // DESIGN: PORTADA Y LOGO
+        Box(modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = 10.dp)) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clickable {
-                        portadaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
+                modifier = Modifier.fillMaxWidth().height(160.dp).clickable { portadaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 if (portadaUri != null) {
-                    AsyncImage(
-                        model = portadaUri,
-                        contentDescription = "Portada",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    AsyncImage(model = portadaUri, contentDescription = "Portada", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 } else {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -161,27 +153,12 @@ fun RegisterStoreScreen(
                 }
             }
 
-            // LOGO CIRCULAR SUPERPUESTO
             Box(
-                modifier = Modifier
-                    .size(110.dp)
-                    .align(Alignment.BottomCenter)
-                    .offset(y = 10.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(4.dp, Color.White, CircleShape) // Borde blanco tipo FB
-                    .clickable {
-                        logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
+                modifier = Modifier.size(110.dp).align(Alignment.BottomCenter).offset(y = 10.dp).clip(CircleShape).background(Color.White).border(4.dp, Color.White, CircleShape).clickable { logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 contentAlignment = Alignment.Center
             ) {
                 if (logoUri != null) {
-                    AsyncImage(
-                        model = logoUri,
-                        contentDescription = "Logo",
-                        modifier = Modifier.fillMaxSize().clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
+                    AsyncImage(model = logoUri, contentDescription = "Logo", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
                 } else {
                     Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(Color(0xFFEEEEEE)), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -198,6 +175,9 @@ fun RegisterStoreScreen(
         LoginInput(label = "Email*", value = email, onValueChange = { email = it })
         LoginInput(label = "Contraseña*", value = password, onValueChange = { password = it }, isPassword = true)
         LoginInput(label = "Número de contacto*", value = celular, onValueChange = { celular = it })
+
+        // 🔥 CAMPO VISUAL PARA LAS ETIQUETAS PERSONALIZADAS
+        LoginInput(label = "Etiquetas (ej: Marino, Brasas, Criollo)*", value = etiquetasInput, onValueChange = { etiquetasInput = it })
 
         Spacer(modifier = Modifier.height(10.dp))
         Text(text = "Dirección del local*", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
@@ -219,13 +199,7 @@ fun RegisterStoreScreen(
             diasSemana.forEach { dia ->
                 val isSelected = diasSeleccionados.contains(dia)
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(if (isSelected) Color(0xFFD32F2F) else Color(0xFFF5F5F5))
-                        .clickable {
-                            diasSeleccionados = if (isSelected) diasSeleccionados - dia else diasSeleccionados + dia
-                        },
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(if (isSelected) Color(0xFFD32F2F) else Color(0xFFF5F5F5)).clickable { diasSeleccionados = if (isSelected) diasSeleccionados - dia else diasSeleccionados + dia },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = dia, color = if (isSelected) Color.White else Color.Gray, fontWeight = FontWeight.Bold)
@@ -268,19 +242,55 @@ fun RegisterStoreScreen(
 
                         val logoUrl = if (logoUri != null) authViewModel.uploadImageSuspend(logoUri!!) else ""
                         val portadaUrl = if (portadaUri != null) authViewModel.uploadImageSuspend(portadaUri!!) else ""
-                        val horarioFinal = "$horaInicio - $horaFin"
 
+                        // 🔥 PROCESAR LAS ETIQUETAS INGRESADAS POR EL USUARIO
+                        val listaEtiquetas = etiquetasInput.split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                        val etiquetasFinales = if (listaEtiquetas.isEmpty()) listOf("Huarique", "Nuevo") else listaEtiquetas
+
+                        // 🔥 CONSTRUCCIÓN COMPLETA Y ALINEADA CON STORE.KT
                         val storeData = mapOf(
-                            "nombre" to nombreLocal,
-                            "email" to email,
-                            "celular" to celular,
+                            "uid" to "",
+                            "nombre" to nombreLocal.trim(),
+                            "email" to email.trim(),
+                            "celular" to celular.trim(),
+
+                            // Horarios
+                            "horario" to "$horaInicio - $horaFin",
+                            "horarioApertura" to horaInicio,
+                            "horarioCierre" to horaFin,
                             "diasApertura" to diasSeleccionados.toList(),
-                            "horario" to horarioFinal,
-                            "rol" to "TIENDA",
-                            "direccion" to mapOf("texto" to direccionTexto, "latitud" to latitudSeleccionada, "longitud" to longitudSeleccionada),
-                            "portadaUrl" to portadaUrl,
+
+                            // Ubicación
+                            "direccion" to mapOf(
+                                "texto" to direccionTexto,
+                                "latitud" to latitudSeleccionada,
+                                "longitud" to longitudSeleccionada
+                            ),
+
+                            // Imágenes
                             "logoUrl" to logoUrl,
-                            "estado" to "APROBADO"
+                            "portadaUrl" to portadaUrl,
+
+                            // Control
+                            "rol" to "TIENDA",
+                            "estado" to "APROBADO",
+                            "antiguedad" to System.currentTimeMillis(),
+
+                            // 🔥 ESTANDARIZADO: Todas las tiendas inician con 5.0 estrellas impecables
+                            "calificacionGeneral" to 5.0,
+                            "totalResenas" to 0,
+                            "etiquetas" to etiquetasFinales,
+
+                            // Campos de perfil
+                            "seguidores" to 0,
+                            "estadoLocal" to "Cerrado",
+                            "plan" to "Impulso",
+                            "razonSocial" to nombreLocal.trim(),
+                            "encargadoNombre" to "",
+                            "encargadoContacto" to "",
+                            "encargadoEmail" to ""
                         )
 
                         authViewModel.registerUserWithRole(
@@ -307,7 +317,8 @@ fun RegisterStoreScreen(
         Spacer(modifier = Modifier.height(30.dp))
     }
 }
-// 🔥 SE MANTIENE INTACTO
+
+// 🔥 AQUÍ ESTÁN LAS FUNCIONES FALTANTES QUE CAUSARON EL ERROR 🔥
 private fun formatTime12h(hour: Int, minute: Int): String {
     val amPm = if (hour >= 12) "PM" else "AM"
     var hour12 = hour % 12
@@ -315,7 +326,6 @@ private fun formatTime12h(hour: Int, minute: Int): String {
     return String.format(java.util.Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm)
 }
 
-// 🔥 SE MANTIENE INTACTO
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomTimePickerDialog(onDismissRequest: () -> Unit, onConfirm: (Int, Int) -> Unit) {

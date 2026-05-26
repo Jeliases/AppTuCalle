@@ -1,5 +1,7 @@
 package com.tech.tucalle.ui.huarique
 
+import com.tech.tucalle.ui.theme.Roboto
+import com.tech.tucalle.ui.theme.Poppins
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -77,13 +79,16 @@ fun StoreHomeScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text("Mi perfil", color = Color.Gray, fontSize = 12.sp)
+                        Text("Mi perfil", color = Color.Gray, fontSize = 12.sp,
+                            fontFamily = Poppins)
                         Text(
                             uiState.nombreTienda.ifBlank { "Cargando..." },
                             fontSize = 20.sp,
+                            fontFamily = Roboto,
                             fontWeight = FontWeight.Bold
                         )
-                        Text("Huarique", color = Color.Gray, fontSize = 13.sp)
+                        Text("Huarique", color = Color.Gray, fontSize = 13.sp,
+                            fontFamily = Poppins)
                     }
                 }
                 // Botón de configuración va al perfil
@@ -109,10 +114,13 @@ fun StoreHomeScreen(
                 ) {
                     // Plan con botón activar
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(uiState.plan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text("Plan Actual", color = Color.Gray, fontSize = 11.sp)
+                        Text(uiState.plan, fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                            fontFamily = Poppins)
+                        Text("Plan Actual", color = Color.Gray, fontSize = 11.sp,
+                            fontFamily = Poppins)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("Mejora tu plan", color = Color.Gray, fontSize = 9.sp)
+                        Text("Mejora tu plan", color = Color.Gray, fontSize = 9.sp,
+                            fontFamily = Poppins)
                         Button(
                             onClick = { },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
@@ -120,7 +128,8 @@ fun StoreHomeScreen(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             modifier = Modifier.height(30.dp)
                         ) {
-                            Text("ACTIVAR", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("ACTIVAR", fontSize = 11.sp,
+                                fontFamily = Poppins, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -133,15 +142,19 @@ fun StoreHomeScreen(
 
                     // Stats
                     Column(horizontalAlignment = Alignment.Start) {
-                        Text("${uiState.seguidores} seguidores", fontSize = 13.sp)
+                        Text("${uiState.seguidores} seguidores", fontSize = 13.sp,
+                            fontFamily = Poppins)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("${uiState.totalResenas} reseñas", fontSize = 13.sp)
+                        Text("${uiState.totalResenas} reseñas", fontSize = 13.sp,
+                            fontFamily = Poppins)
                         Spacer(modifier = Modifier.height(4.dp))
                         val horario = if (uiState.horarioApertura.isNotBlank() && uiState.horarioCierre.isNotBlank())
                             "${uiState.horarioApertura} – ${uiState.horarioCierre}"
                         else "Sin horario"
-                        Text(horario, fontSize = 12.sp, color = Color.Gray)
-                        Text("horario", color = Color.Gray, fontSize = 10.sp)
+                        Text(horario, fontSize = 12.sp,
+                            fontFamily = Poppins, color = Color.Gray)
+                        Text("horario", color = Color.Gray, fontSize = 10.sp,
+                            fontFamily = Poppins)
                     }
                 }
             }
@@ -149,7 +162,8 @@ fun StoreHomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // ── ESTADO ABIERTO / CERRADO ────────────────────────────
-            Text("Estado de tu tienda", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Estado de tu tienda", fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                fontFamily = Roboto)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier
@@ -203,13 +217,15 @@ fun StoreHomeScreen(
                     Text(
                         "Métricas y estadísticas",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        fontFamily = Roboto
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Aquí verás tus platos más populares, recomendaciones recibidas y el rendimiento de tu huarique.",
                         color = Color.Gray,
                         fontSize = 13.sp,
+                        fontFamily = Poppins,
                         lineHeight = 20.sp,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -217,6 +233,7 @@ fun StoreHomeScreen(
                     Text(
                         "ESTAMOS TRABAJANDO EN ELLO",
                         fontSize = 10.sp,
+                        fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         color = Color.LightGray,
                         letterSpacing = 2.sp
@@ -255,6 +272,7 @@ fun StoreBottomNav(selected: String, onSelect: (String) -> Unit) {
                     Text(
                         item.label,
                         fontSize = 10.sp,
+                        fontFamily = Poppins,
                         color = if (isSelected) Color(0xFFD32F2F) else Color.Gray
                     )
                 },
@@ -276,7 +294,8 @@ fun StoreBottomNav(selected: String, onSelect: (String) -> Unit) {
 @Composable
 fun CustomField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(label, color = Color.Gray, fontSize = 12.sp)
+        Text(label, color = Color.Gray, fontSize = 12.sp,
+            fontFamily = Poppins)
         TextField(
             value = value,
             onValueChange = onValueChange,

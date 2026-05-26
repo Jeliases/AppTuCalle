@@ -1,5 +1,7 @@
 package com.tech.tucalle.ui.huarique
 
+import com.tech.tucalle.ui.theme.Roboto
+import com.tech.tucalle.ui.theme.Poppins
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,7 +35,6 @@ import com.tech.tucalle.ui.viewmodel.ProfileViewModel
 import com.tech.tucalle.ui.viewmodel.StoreUiState
 import com.tech.tucalle.ui.viewmodel.StoreViewModel
 import androidx.navigation.NavHostController
-import com.tech.tucalle.ui.theme.Roboto // 🔥 Importamos Roboto para inyectarlo sin romper tu diseño
 
 @Composable
 fun ProfileTiendaScreen(
@@ -206,19 +207,22 @@ fun ProfileTiendaScreen(
                         Text(
                             text = "Mi perfil",
                             color = Color.Gray,
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            fontFamily = Poppins
                         )
 
-                        // 🔥 SE APLICA TIPOGRAFÍA ROBOTO AL NOMBRE
                         Text(
                             text = store.nombreTienda.ifBlank { "Cargando..." },
-                            style = MaterialTheme.typography.headlineMedium
+                            fontSize = 24.sp,
+                            fontFamily = Roboto,
+                            fontWeight = FontWeight.Bold
                         )
 
                         Text(
                             text = "Huarique",
                             color = Color.Gray,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            fontFamily = Poppins
                         )
                     }
                 }
@@ -261,13 +265,15 @@ fun ProfileTiendaScreen(
                         Text(
                             store.plan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            fontFamily = Poppins
                         )
 
                         Text(
                             "Plan Actual",
                             color = Color.Gray,
-                            fontSize = 10.sp
+                            fontSize = 10.sp,
+                            fontFamily = Poppins
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -292,6 +298,7 @@ fun ProfileTiendaScreen(
                             Text(
                                 "ACTIVAR",
                                 fontSize = 10.sp,
+                                fontFamily = Poppins,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -309,14 +316,16 @@ fun ProfileTiendaScreen(
 
                         Text(
                             "${store.seguidores} seguidores",
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            fontFamily = Poppins
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
                             "${store.totalResenas} reseñas",
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            fontFamily = Poppins
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -331,6 +340,7 @@ fun ProfileTiendaScreen(
                         Text(
                             horario,
                             fontSize = 12.sp,
+                            fontFamily = Poppins,
                             color = Color.Gray
                         )
                     }
@@ -383,6 +393,7 @@ fun ProfileTiendaScreen(
                             tab,
 
                             fontSize = 12.sp,
+                            fontFamily = Poppins,
 
                             color =
                                 if (isSelected)
@@ -449,7 +460,8 @@ fun ProfileTiendaScreen(
 
                     modifier = Modifier.padding(horizontal = 24.dp),
 
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    fontFamily = Poppins
                 )
             }
 
@@ -479,12 +491,11 @@ private fun PerfilTiendaAjustesContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
             Text(
                 "Estado de tu tienda",
-                fontFamily = Roboto,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
+                fontSize = 15.sp,
+                fontFamily = Poppins
             )
 
             IconButton(
@@ -554,12 +565,11 @@ private fun PerfilTiendaAjustesContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
         Text(
             "Horario de apertura",
-            fontFamily = Roboto,
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp
+            fontSize = 15.sp,
+            fontFamily = Poppins
         )
 
         ProfileDiasSemanaField(
@@ -596,12 +606,11 @@ private fun PerfilTiendaAjustesContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
         Text(
             "Información de tu tienda",
-            fontFamily = Roboto,
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp
+            fontSize = 15.sp,
+            fontFamily = Poppins
         )
 
         ProfileTextField("Razón Social", store.razonSocial, vm::onRazonSocialChange, isEditing)
@@ -612,12 +621,11 @@ private fun PerfilTiendaAjustesContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 🔥 SE INYECTA ROBOTO MANTENIENDO TU TAMAÑO EXACTO 15.sp
         Text(
             "Información de Encargado",
-            fontFamily = Roboto,
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp
+            fontSize = 15.sp,
+            fontFamily = Poppins
         )
 
         ProfileTextField("Nombres y Apellidos", store.encargadoNombre, vm::onEncargadoNombreChange, isEditing)
@@ -656,12 +664,11 @@ private fun PerfilTiendaAjustesContent(
 
                 } else {
 
-                    // 🔥 SE INYECTA ROBOTO PARA EL BOTÓN (Al igual que en Register)
                     Text(
                         "Guardar cambios",
-                        fontFamily = Roboto,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        fontFamily = Roboto
                     )
                 }
             }
@@ -693,10 +700,11 @@ private fun PerfilTiendaMisResenasContent() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            //  SE APLICA TIPOGRAFÍA ROBOTO PARA TÍTULOS VACÍOS
             Text(
-                text = "Reseñas de Qualities",
-                style = MaterialTheme.typography.titleLarge
+                "Reseñas de Qualities",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                fontFamily = Roboto
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -707,6 +715,7 @@ private fun PerfilTiendaMisResenasContent() {
                 color = Color.Gray,
 
                 fontSize = 13.sp,
+                fontFamily = Poppins,
 
                 lineHeight = 20.sp,
 
@@ -719,6 +728,7 @@ private fun PerfilTiendaMisResenasContent() {
                 "PRÓXIMAMENTE",
 
                 fontSize = 10.sp,
+                fontFamily = Poppins,
 
                 fontWeight = FontWeight.Bold,
 

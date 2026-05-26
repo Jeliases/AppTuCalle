@@ -1,5 +1,7 @@
 package com.tech.tucalle.ui.quality
 
+import com.tech.tucalle.ui.theme.Roboto
+import com.tech.tucalle.ui.theme.Poppins
 import androidx.navigation.NavHostController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,9 +70,12 @@ fun ProfileQualityScreen(
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("Mi perfil", color = Color.Gray, fontSize = 13.sp)
-                        Text("${uiState.nombre} ${uiState.apellidos}".trim().ifBlank { "Cargando..." }, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Text("Quality", color = Color.Gray, fontSize = 14.sp)
+                        Text("Mi perfil", color = Color.Gray, fontSize = 13.sp,
+                            fontFamily = Poppins)
+                        Text("${uiState.nombre} ${uiState.apellidos}".trim().ifBlank { "Cargando..." }, fontSize = 22.sp,
+                            fontFamily = Roboto, fontWeight = FontWeight.Bold)
+                        Text("Quality", color = Color.Gray, fontSize = 14.sp,
+                            fontFamily = Poppins)
                     }
                 }
                 // BOTÓN CERRAR SESIÓN
@@ -83,17 +88,22 @@ fun ProfileQualityScreen(
             Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp), shape = RoundedCornerShape(12.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Mis logros", color = Color.Gray, fontSize = 12.sp)
+                        Text("Mis logros", color = Color.Gray, fontSize = 12.sp,
+                            fontFamily = Poppins)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("🎁 🏅 🏆", fontSize = 18.sp)
+                        Text("🎁 🏅 🏆", fontSize = 18.sp,
+                            fontFamily = Poppins)
                     }
                     Divider(modifier = Modifier.width(1.dp).height(50.dp), color = Color.LightGray)
                     Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
-                        Text("${uiState.seguidores} seguidores", fontSize = 13.sp)
+                        Text("${uiState.seguidores} seguidores", fontSize = 13.sp,
+                            fontFamily = Poppins)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("${uiState.totalResenas} reseñas", fontSize = 13.sp)
+                        Text("${uiState.totalResenas} reseñas", fontSize = 13.sp,
+                            fontFamily = Poppins)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(profileViewModel.calcularAntiguedad() + " antigüedad", fontSize = 12.sp, color = Color.Gray)
+                        Text(profileViewModel.calcularAntiguedad() + " antigüedad", fontSize = 12.sp,
+                            fontFamily = Poppins, color = Color.Gray)
                     }
                 }
             }
@@ -104,7 +114,8 @@ fun ProfileQualityScreen(
                     val isSelected = selectedTab == tab
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { selectedTab = tab }) {
                         Icon(icon, contentDescription = tab, tint = if (isSelected) Color(0xFFD32F2F) else Color.Gray, modifier = Modifier.size(22.dp))
-                        Text(tab, fontSize = 11.sp, color = if (isSelected) Color(0xFFD32F2F) else Color.Gray, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                        Text(tab, fontSize = 11.sp,
+                            fontFamily = Poppins, color = if (isSelected) Color(0xFFD32F2F) else Color.Gray, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
                         if (isSelected) Box(modifier = Modifier.height(2.dp).width(40.dp).background(Color(0xFFD32F2F)))
                     }
                 }
@@ -121,7 +132,8 @@ fun ProfileQualityScreen(
 
             if (uiState.mensajeGuardado.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(uiState.mensajeGuardado, color = if (uiState.mensajeGuardado.startsWith("✅")) Color(0xFF4CAF50) else Color.Red, modifier = Modifier.padding(horizontal = 24.dp), fontSize = 13.sp)
+                Text(uiState.mensajeGuardado, color = if (uiState.mensajeGuardado.startsWith("✅")) Color(0xFF4CAF50) else Color.Red, modifier = Modifier.padding(horizontal = 24.dp), fontSize = 13.sp,
+                    fontFamily = Poppins)
             }
             Spacer(modifier = Modifier.height(40.dp))
         }
@@ -133,7 +145,8 @@ private fun AjustesQualityContent(uiState: com.tech.tucalle.ui.viewmodel.Profile
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Información de tu cuenta", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Información de tu cuenta", fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                fontFamily = Poppins)
             IconButton(onClick = onToggleEdit) {
                 Icon(imageVector = if (isEditing) Icons.Outlined.LockOpen else Icons.Outlined.Lock, contentDescription = "Alternar edición", tint = Color(0xFFD32F2F))
             }
@@ -148,7 +161,8 @@ private fun AjustesQualityContent(uiState: com.tech.tucalle.ui.viewmodel.Profile
         ProfileDocumentField(uiState.tipoDocumento, uiState.dni, vm::onTipoDocumentoChange, vm::onDniChange, isEditing)
 
         Spacer(modifier = Modifier.height(20.dp))
-        Text("Disponibilidad para evaluaciones", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Text("Disponibilidad para evaluaciones", fontWeight = FontWeight.Bold, fontSize = 15.sp,
+            fontFamily = Poppins)
         Spacer(modifier = Modifier.height(10.dp))
 
         ProfileDiasSemanaField(uiState.diasDisponibles, { vm.onDiasChange(it) }, isEditing)
@@ -173,7 +187,8 @@ private fun AjustesQualityContent(uiState: com.tech.tucalle.ui.viewmodel.Profile
                 enabled = !uiState.isLoading
             ) {
                 if (uiState.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                else Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                    fontFamily = Roboto)
             }
         }
     }
@@ -185,11 +200,14 @@ private fun ProximamenteQualityContent(titulo: String, descripcion: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Outlined.Build, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                fontFamily = Roboto)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(descripcion, color = Color.Gray, fontSize = 13.sp, lineHeight = 20.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(descripcion, color = Color.Gray, fontSize = 13.sp,
+                fontFamily = Poppins, lineHeight = 20.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("PRÓXIMAMENTE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.LightGray, letterSpacing = 2.sp)
+            Text("PRÓXIMAMENTE", fontSize = 10.sp,
+                fontFamily = Poppins, fontWeight = FontWeight.Bold, color = Color.LightGray, letterSpacing = 2.sp)
         }
     }
 }

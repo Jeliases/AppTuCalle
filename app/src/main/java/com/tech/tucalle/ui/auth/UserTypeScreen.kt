@@ -29,6 +29,7 @@ fun UserTypeScreen(
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
+
         )
 
         Spacer(modifier = Modifier.height(40.dp))
