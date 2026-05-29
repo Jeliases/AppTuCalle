@@ -28,7 +28,7 @@ import com.tech.tucalle.ui.auth.*
 // Pantallas Usuario
 import com.tech.tucalle.ui.usuario.HomeScreen
 import com.tech.tucalle.ui.usuario.ProfileUsuarioScreen
-import com.tech.tucalle.ui.usuario.StoreDetailScreen // 🔥 IMPORTAMOS LA NUEVA PANTALLA MURAL
+import com.tech.tucalle.ui.usuario.StoreDetailScreen
 
 // Pantallas Quality
 import com.tech.tucalle.ui.quality.HomeQualityScreen
@@ -37,6 +37,7 @@ import com.tech.tucalle.ui.quality.ProfileQualityScreen
 // Pantallas Huarique/Tienda
 import com.tech.tucalle.ui.huarique.StoreHomeScreen
 import com.tech.tucalle.ui.huarique.ProfileTiendaScreen
+import com.tech.tucalle.ui.huarique.GestionPlatosScreen // 🔥 IMPORTAMOS LA PANTALLA DE PLATOS
 
 // ViewModels
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
@@ -150,44 +151,37 @@ fun NavGraph(navController: NavHostController) {
 
         // ── HOMES ─────────────────────────────────────────────────
 
-        // A. HOME USUARIO
         composable("home_user") {
             HomeScreen(
                 navController = navController,
                 authViewModel = authViewModel,
                 rol = "USUARIO",
                 onRestaurantClick = { idTienda ->
-                    // 🔥 NAVEGAMOS AL MURAL PASANDO EL ROL DE USUARIO
                     navController.navigate("mural_tienda/$idTienda/USUARIO")
                 }
             )
         }
 
-        // B1. HOME QUALITY (Explorar huariques)
         composable("home_quality_main") {
             HomeScreen(
                 navController = navController,
                 authViewModel = authViewModel,
                 rol = "QUALITY",
                 onRestaurantClick = { idTienda ->
-                    // 🔥 NAVEGAMOS AL MURAL PASANDO EL ROL DE QUALITY
                     navController.navigate("mural_tienda/$idTienda/QUALITY")
                 }
             )
         }
 
-        // B2. EVALUACIÓN QUALITY (La pantalla CHAS)
         composable("home_quality") {
             HomeQualityScreen(
                 navController = navController,
                 onRestaurantClick = { idTienda ->
-                    // 🔥 NAVEGAMOS AL MURAL PASANDO EL ROL DE QUALITY
                     navController.navigate("mural_tienda/$idTienda/QUALITY")
                 }
             )
         }
 
-        // C. HOME TIENDA
         composable("home_tienda") {
             StoreHomeScreen(
                 authViewModel = authViewModel,
@@ -195,7 +189,6 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // D. HOME ADMIN
         composable("home_admin") {
             PlaceholderHome(
                 rol = "ADMIN",
@@ -205,7 +198,11 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // E. PANTALLA "EN CONSTRUCCIÓN" (Para evitar crashes)
+        // 🔥 GESTIÓN DE PLATOS DE LA TIENDA
+        composable("gestion_platos") {
+            GestionPlatosScreen(navController = navController)
+        }
+
         composable(
             route = "en_construccion/{rol}",
             arguments = listOf(navArgument("rol") { type = NavType.StringType })
@@ -252,7 +249,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // ── MURAL TIENDA (LA NUEVA PANTALLA) ──────────────────────
+        // ── MURAL TIENDA ──────────────────────
         composable(
             route = "mural_tienda/{idTienda}/{rol}",
             arguments = listOf(
@@ -262,13 +259,7 @@ fun NavGraph(navController: NavHostController) {
         ) { backStackEntry ->
             val idTienda = backStackEntry.arguments?.getString("idTienda") ?: ""
             val rol = backStackEntry.arguments?.getString("rol") ?: "USUARIO"
-
-            // 🔥 REEMPLAZAMOS EL PLACEHOLDER BLANCO POR TU PANTALLA REAL
-            StoreDetailScreen(
-                navController = navController,
-                rol = rol
-                // En el siguiente paso le conectaremos la base de datos a esta pantalla usando el 'idTienda'
-            )
+            StoreDetailScreen(navController = navController, rol = rol)
         }
     }
 }
@@ -308,7 +299,7 @@ fun BottomNavigationBarDynamic(
                 label = { Text(item, fontSize = 10.sp) },
                 selected = isSelected,
                 onClick = {
-                    if (!isSelected) { // ESTO EVITA LA PANTALLA BLANCA POR CLICS REPETIDOS
+                    if (!isSelected) {
                         if (navController != null) {
                             val ruta = when (item) {
                                 "Home" -> when(rol) {
@@ -317,13 +308,14 @@ fun BottomNavigationBarDynamic(
                                     "ADMIN" -> "home_admin"
                                     else -> "home_user"
                                 }
+                                "Platos" -> "gestion_platos" // 🔥 ENRUTAMIENTO ACTIVADO PARA LA TIENDA
                                 "Reseñas" -> if (rol == "QUALITY") "home_quality" else "en_construccion/$rol"
                                 "Perfil" -> when (rol) {
                                     "QUALITY" -> "perfil_quality"
                                     "TIENDA" -> "perfil_tienda"
                                     else -> "perfil_usuario"
                                 }
-                                else -> "en_construccion/$rol" // Todo lo demás va al Placeholder
+                                else -> "en_construccion/$rol"
                             }
                             navController.navigate(ruta) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -331,7 +323,7 @@ fun BottomNavigationBarDynamic(
                                 restoreState = true
                             }
                         } else {
-                            onItemClick(item) // Fallback si no se pasa navController
+                            onItemClick(item)
                         }
                     }
                 },

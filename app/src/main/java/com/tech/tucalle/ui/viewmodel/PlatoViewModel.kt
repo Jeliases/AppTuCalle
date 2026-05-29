@@ -22,8 +22,15 @@ class PlatoViewModel : ViewModel() {
     }
 
     fun guardarPlato(plato: Plato, onResult: (Boolean) -> Unit) {
-        val docRef = if (plato.id.isEmpty()) db.collection("platos").document() else db.collection("platos").document(plato.id)
-        val platoConId = plato.copy(id = docRef.id)
+        // 🔥 CORREGIDO: Usamos plato.uid en lugar de plato.id
+        val docRef = if (plato.uid.isEmpty()) {
+            db.collection("platos").document()
+        } else {
+            db.collection("platos").document(plato.uid)
+        }
+
+        // 🔥 CORREGIDO: Copiamos asignando el valor a 'uid'
+        val platoConId = plato.copy(uid = docRef.id)
 
         docRef.set(platoConId)
             .addOnSuccessListener { onResult(true) }

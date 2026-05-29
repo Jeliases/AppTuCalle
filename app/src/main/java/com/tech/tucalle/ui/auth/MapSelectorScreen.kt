@@ -43,7 +43,7 @@ fun MapSelectorScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val defaultLocation = LatLng(-12.046374, -77.042793) // Lima, Perú por defecto
+    val defaultLocation = LatLng(-12.046374, -77.042793)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultLocation, 15f)
     }

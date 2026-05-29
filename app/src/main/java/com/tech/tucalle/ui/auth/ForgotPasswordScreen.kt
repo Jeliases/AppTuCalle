@@ -106,5 +106,37 @@ fun ForgotPasswordScreen(
                 Text("Continuar", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Aviso de spam — siempre visible para orientar al usuario
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(0.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text("💡", fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
+                Column {
+                    Text(
+                        text = "¿No ves el correo?",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF795548)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Revisa tu carpeta de Spam o Correo no deseado. Si está ahí, márcalo como \"No es spam\" para que futuros correos lleguen directo a tu bandeja.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF795548),
+                        lineHeight = 17.sp
+                    )
+                }
+            }
+        }
     }
 }

@@ -6,9 +6,16 @@ data class Store(
     val email: String = "",
     val celular: String = "",
     val horario: String = "",
-    val horarioApertura: String = "", // Útil para editar en el perfil
-    val horarioCierre: String = "",   // Útil para editar en el perfil
+
+    // Horario Fijo
+    val horarioApertura: String = "",
+    val horarioCierre: String = "",
     val diasApertura: List<String> = emptyList(),
+
+    // Horario Variable
+    val tipoHorario: String = "FIJO",
+    val horariosVariables: Map<String, Map<String, String>> = emptyMap(),
+
     val direccion: Direccion = Direccion(),
     val logoUrl: String = "",
     val portadaUrl: String = "",
@@ -16,12 +23,12 @@ data class Store(
     val estado: String = "APROBADO",
     val antiguedad: Long = 0L,
 
-    // 🔥 Campos para el Home y Consultas
-    val calificacionGeneral: Double = 0.0,
+    // Etiquetas validadas
+    val calificacionGeneral: Double = 5.0,
     val totalResenas: Int = 0,
     val etiquetas: List<String> = emptyList(),
 
-    // 🔥 Campos exclusivos del Perfil
+    // Campos exclusivos del Perfil
     val seguidores: Int = 0,
     val estadoLocal: String = "Cerrado",
     val plan: String = "Impulso",
@@ -36,3 +43,12 @@ data class Direccion(
     val latitud: Double = 0.0,
     val longitud: Double = 0.0
 )
+
+// 🔥 LISTA OFICIAL DE ETIQUETAS EN PRODUCCIÓN
+object EtiquetasTienda {
+    val lista = listOf(
+        "Broaster", "Caldos", "Parrilla", "Ceviche", "Chifa",
+        "Sanguchería", "Menú del día", "Bebidas", "Postres",
+        "Hamburguesas", "Pollo a la brasa", "Mariscos", "Criollo"
+    )
+}

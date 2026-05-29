@@ -29,7 +29,14 @@ data class StoreUiState(
     val seguidores: Int = 0,
     val totalResenas: Int = 0,
     val isLoading: Boolean = false,
-    val mensajeGuardado: String = ""
+    val mensajeGuardado: String = "",
+
+    // 🔥 AÑADIMOS LA CALIFICACIÓN AL ESTADO
+    val calificacionGeneral: Double = 5.0,
+
+    val tipoHorario: String = "FIJO",
+    val horariosVariables: Map<String, Map<String, String>> = emptyMap(),
+    val etiquetas: List<String> = emptyList()
 )
 
 class StoreViewModel : ViewModel() {
@@ -68,12 +75,19 @@ class StoreViewModel : ViewModel() {
                 val apertura = partes.getOrNull(0) ?: ""
                 val cierre   = partes.getOrNull(1) ?: ""
 
+                // 🔥 RECUPERAMOS LOS DATOS NUEVOS DE FIRESTORE
+                val tipoHorario = doc.getString("tipoHorario") ?: "FIJO"
+                val horariosVariablesMap = (doc.get("horariosVariables") as? Map<String, Map<String, String>>) ?: emptyMap()
+                val etiquetasList = (doc.get("etiquetas") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                val calificacionGeneral = doc.getDouble("calificacionGeneral") ?: 5.0
+
                 _uiState.update {
                     it.copy(
                         nombreTienda      = doc.getString("nombre") ?: "",
                         razonSocial       = doc.getString("razonSocial") ?: "",
                         celular           = doc.getString("celular") ?: "",
                         whatsapp          = doc.getString("whatsapp") ?: "",
+                        calificacionGeneral = calificacionGeneral,
                         direccion         = direccionTexto,
                         latitud           = lat,
                         longitud          = lng,
@@ -88,7 +102,12 @@ class StoreViewModel : ViewModel() {
                         portadaUrl        = doc.getString("portadaUrl") ?: "",
                         plan              = doc.getString("plan") ?: "Impulso",
                         seguidores        = doc.getLong("seguidores")?.toInt() ?: 0,
-                        totalResenas      = doc.getLong("totalReseñas")?.toInt() ?: 0
+                        totalResenas      = doc.getLong("totalReseñas")?.toInt() ?: 0,
+
+                        // 🔥 LOS ASIGNAMOS AL ESTADO PARA QUE LA PANTALLA LOS LEA
+                        tipoHorario       = tipoHorario,
+                        horariosVariables = horariosVariablesMap,
+                        etiquetas         = etiquetasList
                     )
                 }
             }
@@ -111,8 +130,14 @@ class StoreViewModel : ViewModel() {
             "encargadoContacto" to s.encargadoContacto,
             "encargadoEmail"    to s.encargadoEmail,
             "horario"           to horarioTexto,
-            "logoUrl"           to s.logoUrl
+            "logoUrl"           to s.logoUrl,
+
+            // 🔥 GUARDAMOS LOS NUEVOS DATOS EN FIRESTORE
+            "tipoHorario"       to s.tipoHorario,
+            "horariosVariables" to s.horariosVariables,
+            "etiquetas"         to s.etiquetas
         )
+
         _uiState.update { it.copy(isLoading = true) }
         db.collection("tiendas").document(uid).update(data)
             .addOnSuccessListener { _uiState.update { it.copy(isLoading = false, mensajeGuardado = "✅ Cambios guardados") } }
@@ -124,8 +149,40 @@ class StoreViewModel : ViewModel() {
         _uiState.update { it.copy(estadoLocal = nuevoEstado) }
         db.collection("tiendas").document(uid).update("estadoLocal", nuevoEstado)
     }
+
     fun cerrarSesion(onLogoutSuccess: () -> Unit) {
         auth.signOut()
         onLogoutSuccess()
+    }
+
+    // =========================================
+    // 🔥 FUNCIONES DE LAS NUEVAS VARIABLES
+    // =========================================
+    fun onTipoHorarioChange(tipo: String) {
+        _uiState.value = _uiState.value.copy(tipoHorario = tipo)
+    }
+
+    fun onHorariosVariablesChange(mapa: Map<String, Map<String, String>>) {
+        _uiState.value = _uiState.value.copy(horariosVariables = mapa)
+    }
+
+    fun onEtiquetasChange(nuevasEtiquetas: List<String>) {
+        val etiquetasFinales = nuevasEtiquetas.toMutableList()
+
+        // 🔥 CORRECCIÓN: En UI State 'direccion' es String, así que ya no usamos .texto
+        val distrito = extraerDistrito(_uiState.value.direccion)
+
+        if (distrito.isNotEmpty() && !etiquetasFinales.contains(distrito)) {
+            etiquetasFinales.add(distrito)
+        }
+
+        _uiState.value = _uiState.value.copy(etiquetas = etiquetasFinales)
+    }
+
+    // Función auxiliar para sacar el distrito de la dirección
+    private fun extraerDistrito(direccionCompleta: String): String {
+        if (direccionCompleta.isBlank() || direccionCompleta == "No seleccionada") return ""
+        val partes = direccionCompleta.split(",")
+        return if (partes.size > 1) partes.last().trim() else ""
     }
 }

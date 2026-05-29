@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.tech.tucalle.navigation.BottomNavigationBarDynamic // 🔥 IMPORTAMOS LA BARRA UNIVERSAL
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import com.tech.tucalle.ui.viewmodel.StoreViewModel
 
@@ -37,21 +37,17 @@ fun StoreHomeScreen(
     val uiState by storeViewModel.uiState.collectAsState()
     val scroll = rememberScrollState()
 
-    // Tab seleccionado en el navbar
-    var navSelected by remember { mutableStateOf("Home") }
-
     Scaffold(
         containerColor = Color.White,
         bottomBar = {
-            StoreBottomNav(
-                selected = navSelected,
-                onSelect = { item ->
-                    navSelected = item
-                    when (item) {
-                        "Perfil" -> navController?.navigate("perfil_tienda")
-                    }
-                }
-            )
+            // 🔥 USAMOS LA BARRA DINÁMICA QUE YA CONOCE TODAS LAS RUTAS
+            if (navController != null) {
+                BottomNavigationBarDynamic(
+                    rol = "TIENDA",
+                    currentSelection = "Home",
+                    navController = navController
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -240,52 +236,6 @@ fun StoreHomeScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-// ── NAVBAR TIENDA ────────────────────────────────────────────────
-@Composable
-fun StoreBottomNav(selected: String, onSelect: (String) -> Unit) {
-    data class NavItem(val label: String, val icon: ImageVector)
-
-    val items = listOf(
-        NavItem("Home",    Icons.Outlined.Home),
-        NavItem("Platos",  Icons.Outlined.MenuBook),
-        NavItem("Reseñas", Icons.Outlined.Star),
-        NavItem("Métricas",Icons.Outlined.BarChart),
-        NavItem("Perfil",  Icons.Outlined.Person)
-    )
-
-    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        items.forEach { item ->
-            val isSelected = selected == item.label
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        item.icon,
-                        contentDescription = item.label,
-                        tint = if (isSelected) Color(0xFFD32F2F) else Color.Gray
-                    )
-                },
-                label = {
-                    Text(
-                        item.label,
-                        fontSize = 10.sp,
-                        fontFamily = Poppins,
-                        color = if (isSelected) Color(0xFFD32F2F) else Color.Gray
-                    )
-                },
-                selected = isSelected,
-                onClick = { onSelect(item.label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor   = Color(0xFFD32F2F),
-                    selectedTextColor   = Color(0xFFD32F2F),
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray,
-                    indicatorColor      = Color.White
-                )
-            )
         }
     }
 }

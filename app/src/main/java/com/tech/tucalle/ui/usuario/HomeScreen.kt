@@ -135,7 +135,7 @@ fun HomeScreen(
 
             item {
                 Column(modifier = Modifier.padding(start = 20.dp)) {
-                    SectionHeader(title = "Huariques recomendados")
+                    SectionHeader(title = "Huariques Cerca de ti")
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyRow {
                         items(tiendasReales) { tienda ->

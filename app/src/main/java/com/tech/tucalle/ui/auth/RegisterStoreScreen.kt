@@ -31,8 +31,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.tech.tucalle.ui.components.SelectorEtiquetas
 import com.tech.tucalle.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Composable
 fun RegisterStoreScreen(
@@ -42,32 +44,27 @@ fun RegisterStoreScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    // 1. VARIABLES DE TEXTO DE LA INTERFAZ
     var nombreLocal by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var celular by remember { mutableStateOf("") }
 
-    // 🔥 NUEVA VARIABLE PARA LAS ETIQUETAS PERSONALIZADAS
-    var etiquetasInput by remember { mutableStateOf("") }
+    // 🔥 AHORA ES UNA LISTA CONTROLADA
+    var etiquetasSeleccionadas by remember { mutableStateOf(listOf<String>()) }
 
-    // 2. VARIABLES DE UBICACIÓN DESDE EL MAPA
     var direccionTexto by remember { mutableStateOf("No seleccionada") }
     var latitudSeleccionada by remember { mutableDoubleStateOf(0.0) }
     var longitudSeleccionada by remember { mutableDoubleStateOf(0.0) }
     var showMapSelector by remember { mutableStateOf(false) }
 
-    // 3. VARIABLES DE HORARIO DESDE EL RELOJ
     var horaInicio by remember { mutableStateOf("") }
     var horaFin by remember { mutableStateOf("") }
     var showInicioDialog by remember { mutableStateOf(false) }
     var showFinDialog by remember { mutableStateOf(false) }
 
-    // 4. DÍAS DE LA SEMANA
     val diasSemana = listOf("L", "M", "X", "J", "V", "S", "D")
     var diasSeleccionados by remember { mutableStateOf(setOf<String>()) }
 
-    // 5. CONTROL DE FLUJO E IMÁGENES
     var statusMessage by remember { mutableStateOf("") }
     var aceptoTerminos by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
@@ -75,14 +72,8 @@ fun RegisterStoreScreen(
     var logoUri by remember { mutableStateOf<Uri?>(null) }
     var portadaUri by remember { mutableStateOf<Uri?>(null) }
 
-    val logoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri -> logoUri = uri }
-
-    val portadaPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri -> portadaUri = uri }
-
+    val logoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> logoUri = uri }
+    val portadaPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> portadaUri = uri }
     val scrollState = rememberScrollState()
 
     if (showMapSelector) {
@@ -100,28 +91,13 @@ fun RegisterStoreScreen(
     }
 
     if (showInicioDialog) {
-        CustomTimePickerDialog(
-            onDismissRequest = { showInicioDialog = false },
-            onConfirm = { hour, minute ->
-                horaInicio = formatTime12h(hour, minute)
-                showInicioDialog = false
-            }
-        )
+        CustomTimePickerDialog(onDismissRequest = { showInicioDialog = false }, onConfirm = { hour, minute -> horaInicio = formatTime12h(hour, minute); showInicioDialog = false })
     }
-
     if (showFinDialog) {
-        CustomTimePickerDialog(
-            onDismissRequest = { showFinDialog = false },
-            onConfirm = { hour, minute ->
-                horaFin = formatTime12h(hour, minute)
-                showFinDialog = false
-            }
-        )
+        CustomTimePickerDialog(onDismissRequest = { showFinDialog = false }, onConfirm = { hour, minute -> horaFin = formatTime12h(hour, minute); showFinDialog = false })
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(horizontal = 30.dp).verticalScroll(scrollState)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.White).padding(horizontal = 30.dp).verticalScroll(scrollState)) {
         IconButton(onClick = onBack, modifier = Modifier.padding(top = 10.dp)) {
             Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", modifier = Modifier.size(30.dp), tint = Color.Black)
         }
@@ -133,40 +109,14 @@ fun RegisterStoreScreen(
             Text(text = statusMessage, color = if (statusMessage.contains("éxito")) Color(0xFF4CAF50) else Color.Red, fontSize = 14.sp, modifier = Modifier.padding(vertical = 10.dp))
         }
 
-        // DESIGN: PORTADA Y LOGO
         Box(modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = 10.dp)) {
-            Card(
-                modifier = Modifier.fillMaxWidth().height(160.dp).clickable { portadaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                if (portadaUri != null) {
-                    AsyncImage(model = portadaUri, contentDescription = "Portada", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                } else {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = "Add", tint = Color.Gray, modifier = Modifier.size(40.dp))
-                            Text("Añadir Portada", color = Color.Gray, fontSize = 14.sp)
-                        }
-                    }
-                }
+            Card(modifier = Modifier.fillMaxWidth().height(160.dp).clickable { portadaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                if (portadaUri != null) AsyncImage(model = portadaUri, contentDescription = "Portada", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                else Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddAPhoto, contentDescription = "Add", tint = Color.Gray, modifier = Modifier.size(40.dp)); Text("Añadir Portada", color = Color.Gray, fontSize = 14.sp) } }
             }
-
-            Box(
-                modifier = Modifier.size(110.dp).align(Alignment.BottomCenter).offset(y = 10.dp).clip(CircleShape).background(Color.White).border(4.dp, Color.White, CircleShape).clickable { logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (logoUri != null) {
-                    AsyncImage(model = logoUri, contentDescription = "Logo", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
-                } else {
-                    Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(Color(0xFFEEEEEE)), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = "Add", tint = Color.Gray, modifier = Modifier.size(24.dp))
-                            Text("Logo", color = Color.Gray, fontSize = 12.sp)
-                        }
-                    }
-                }
+            Box(modifier = Modifier.size(110.dp).align(Alignment.BottomCenter).offset(y = 10.dp).clip(CircleShape).background(Color.White).border(4.dp, Color.White, CircleShape).clickable { logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, contentAlignment = Alignment.Center) {
+                if (logoUri != null) AsyncImage(model = logoUri, contentDescription = "Logo", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                else Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(Color(0xFFEEEEEE)), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddAPhoto, contentDescription = "Add", tint = Color.Gray, modifier = Modifier.size(24.dp)); Text("Logo", color = Color.Gray, fontSize = 12.sp) } }
             }
         }
 
@@ -176,16 +126,24 @@ fun RegisterStoreScreen(
         LoginInput(label = "Contraseña*", value = password, onValueChange = { password = it }, isPassword = true)
         LoginInput(label = "Número de contacto*", value = celular, onValueChange = { celular = it })
 
-        // 🔥 CAMPO VISUAL PARA LAS ETIQUETAS PERSONALIZADAS
-        LoginInput(label = "Etiquetas (ej: Marino, Brasas, Criollo)*", value = etiquetasInput, onValueChange = { etiquetasInput = it })
-
         Spacer(modifier = Modifier.height(10.dp))
+
+        // 🔥 COMPONENTE VISUAL PARA SELECCIONAR ETIQUETAS
+        SelectorEtiquetas(
+            etiquetasSeleccionadas = etiquetasSeleccionadas,
+            onEtiquetaToggle = { etiqueta ->
+                etiquetasSeleccionadas = if (etiquetasSeleccionadas.contains(etiqueta)) {
+                    etiquetasSeleccionadas - etiqueta
+                } else {
+                    etiquetasSeleccionadas + etiqueta
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
         Text(text = "Dirección del local*", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
         Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth().height(55.dp).clickable { showMapSelector = true }.shadow(8.dp, RoundedCornerShape(12.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
+        Card(modifier = Modifier.fillMaxWidth().height(55.dp).clickable { showMapSelector = true }.shadow(8.dp, RoundedCornerShape(12.dp)), colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = if (direccionTexto.isEmpty()) "Seleccionar en el mapa..." else direccionTexto, color = if (direccionTexto.isEmpty()) Color.Gray else Color.Black, fontSize = 14.sp, maxLines = 1, modifier = Modifier.weight(1f))
                 Icon(Icons.Default.LocationOn, contentDescription = "Mapa", tint = Color(0xFFD32F2F))
@@ -198,10 +156,7 @@ fun RegisterStoreScreen(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             diasSemana.forEach { dia ->
                 val isSelected = diasSeleccionados.contains(dia)
-                Box(
-                    modifier = Modifier.size(40.dp).clip(CircleShape).background(if (isSelected) Color(0xFFD32F2F) else Color(0xFFF5F5F5)).clickable { diasSeleccionados = if (isSelected) diasSeleccionados - dia else diasSeleccionados + dia },
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(if (isSelected) Color(0xFFD32F2F) else Color(0xFFF5F5F5)).clickable { diasSeleccionados = if (isSelected) diasSeleccionados - dia else diasSeleccionados + dia }, contentAlignment = Alignment.Center) {
                     Text(text = dia, color = if (isSelected) Color.White else Color.Gray, fontWeight = FontWeight.Bold)
                 }
             }
@@ -212,17 +167,16 @@ fun RegisterStoreScreen(
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Card(modifier = Modifier.weight(1f).height(55.dp).clickable { showInicioDialog = true }.shadow(8.dp, RoundedCornerShape(12.dp)), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = if (horaInicio.isEmpty()) "Abre..." else horaInicio, color = if (horaInicio.isEmpty()) Color.Gray else Color.Black)
-                }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = if (horaInicio.isEmpty()) "Abre..." else horaInicio, color = if (horaInicio.isEmpty()) Color.Gray else Color.Black) }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Card(modifier = Modifier.weight(1f).height(55.dp).clickable { showFinDialog = true }.shadow(8.dp, RoundedCornerShape(12.dp)), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = if (horaFin.isEmpty()) "Cierra..." else horaFin, color = if (horaFin.isEmpty()) Color.Gray else Color.Black)
-                }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = if (horaFin.isEmpty()) "Cierra..." else horaFin, color = if (horaFin.isEmpty()) Color.Gray else Color.Black) }
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = "💡 Podrás configurar un horario detallado (ej. diferente para cada día) más adelante desde los ajustes de tu perfil.", fontSize = 12.sp, color = Color.Gray, lineHeight = 16.sp)
 
         Spacer(modifier = Modifier.height(20.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -234,7 +188,7 @@ fun RegisterStoreScreen(
         Button(
             onClick = {
                 if (email.isNotEmpty() && password.isNotEmpty() && nombreLocal.isNotEmpty() &&
-                    direccionTexto.isNotEmpty() && horaInicio.isNotEmpty() && horaFin.isNotEmpty() && diasSeleccionados.isNotEmpty()) {
+                    direccionTexto.isNotEmpty() && horaInicio.isNotEmpty() && horaFin.isNotEmpty() && diasSeleccionados.isNotEmpty() && etiquetasSeleccionadas.isNotEmpty()) {
 
                     coroutineScope.launch {
                         isUploading = true
@@ -243,47 +197,33 @@ fun RegisterStoreScreen(
                         val logoUrl = if (logoUri != null) authViewModel.uploadImageSuspend(logoUri!!) else ""
                         val portadaUrl = if (portadaUri != null) authViewModel.uploadImageSuspend(portadaUri!!) else ""
 
-                        // 🔥 PROCESAR LAS ETIQUETAS INGRESADAS POR EL USUARIO
-                        val listaEtiquetas = etiquetasInput.split(",")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                        val etiquetasFinales = if (listaEtiquetas.isEmpty()) listOf("Huarique", "Nuevo") else listaEtiquetas
+                        // 🔥 ETIQUETAS + AUTOMATIZACIÓN DEL DISTRITO
+                        val etiquetasFinales = etiquetasSeleccionadas.toMutableList()
+                        val distritoDetectado = extraerDistrito(direccionTexto)
+                        if (distritoDetectado.isNotEmpty() && !etiquetasFinales.contains(distritoDetectado)) {
+                            etiquetasFinales.add(distritoDetectado)
+                        }
 
-                        // 🔥 CONSTRUCCIÓN COMPLETA Y ALINEADA CON STORE.KT
                         val storeData = mapOf(
                             "uid" to "",
                             "nombre" to nombreLocal.trim(),
                             "email" to email.trim(),
                             "celular" to celular.trim(),
-
-                            // Horarios
                             "horario" to "$horaInicio - $horaFin",
                             "horarioApertura" to horaInicio,
                             "horarioCierre" to horaFin,
                             "diasApertura" to diasSeleccionados.toList(),
-
-                            // Ubicación
-                            "direccion" to mapOf(
-                                "texto" to direccionTexto,
-                                "latitud" to latitudSeleccionada,
-                                "longitud" to longitudSeleccionada
-                            ),
-
-                            // Imágenes
+                            "tipoHorario" to "FIJO",
+                            "horariosVariables" to emptyMap<String, Any>(),
+                            "direccion" to mapOf("texto" to direccionTexto, "latitud" to latitudSeleccionada, "longitud" to longitudSeleccionada),
                             "logoUrl" to logoUrl,
                             "portadaUrl" to portadaUrl,
-
-                            // Control
                             "rol" to "TIENDA",
                             "estado" to "APROBADO",
                             "antiguedad" to System.currentTimeMillis(),
-
-                            // 🔥 ESTANDARIZADO: Todas las tiendas inician con 5.0 estrellas impecables
                             "calificacionGeneral" to 5.0,
                             "totalResenas" to 0,
                             "etiquetas" to etiquetasFinales,
-
-                            // Campos de perfil
                             "seguidores" to 0,
                             "estadoLocal" to "Cerrado",
                             "plan" to "Impulso",
@@ -300,7 +240,7 @@ fun RegisterStoreScreen(
                         )
                     }
                 } else {
-                    statusMessage = "Por favor, llena todos los campos."
+                    statusMessage = "Por favor, llena todos los campos y selecciona al menos una etiqueta."
                 }
             },
             enabled = aceptoTerminos && !isUploading,
@@ -308,29 +248,32 @@ fun RegisterStoreScreen(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
             shape = RoundedCornerShape(30.dp)
         ) {
-            if (isUploading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Text("Registrarse", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            }
+            if (isUploading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            else Text("Registrarse", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(30.dp))
     }
 }
 
-// 🔥 AQUÍ ESTÁN LAS FUNCIONES FALTANTES QUE CAUSARON EL ERROR 🔥
+// FUNCIONES AUXILIARES
 private fun formatTime12h(hour: Int, minute: Int): String {
     val amPm = if (hour >= 12) "PM" else "AM"
     var hour12 = hour % 12
     if (hour12 == 0) hour12 = 12
-    return String.format(java.util.Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm)
+    return String.format(Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm)
+}
+
+// Extrae la última parte de la dirección (suele ser el distrito o provincia tras la coma)
+private fun extraerDistrito(direccionCompleta: String): String {
+    if (direccionCompleta.isBlank() || direccionCompleta == "No seleccionada") return ""
+    val partes = direccionCompleta.split(",")
+    return if (partes.size > 1) partes.last().trim() else ""
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomTimePickerDialog(onDismissRequest: () -> Unit, onConfirm: (Int, Int) -> Unit) {
     val state = rememberTimePickerState(is24Hour = false)
-
     Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = true)) {
         Surface(shape = RoundedCornerShape(28.dp), tonalElevation = 6.dp, color = Color.White, modifier = Modifier.padding(16.dp)) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
