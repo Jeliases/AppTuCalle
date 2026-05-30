@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,18 +63,8 @@ fun HomeQualityScreen(
                 currentSelection = "Home",
                 navController = navController
             )
-        },
-        // FAB para abrir el formulario CHAS
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("nueva_evaluacion") },
-                containerColor = Color(0xFFD32F2F),
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva evaluación CHAS")
-            }
         }
+        // 🔥 ELIMINAMOS EL BOTÓN FLOTANTE (+) DEFINITIVAMENTE
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
